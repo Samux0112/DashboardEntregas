@@ -93,7 +93,7 @@
           const markerPositions = new Map();
   
           // Definición de íconos de marcador personalizados usando Font Awesome
-          const iconUrls = {
+          const iconClasses = {
             'Inicio de sesión': 'fa-user',
             'Cambio de ubicación': 'fa-map-marker-alt',
             'Terminar día': 'fa-clock',
@@ -118,21 +118,23 @@
             const position = { lat, lng };
             pathCoordinates.push(position);
   
-            let iconClass = iconUrls[operacion.tipo] || iconUrls['Entrega realizada (entregado)']; // Usar un icono predeterminado si no se encuentra el tipo
+            let iconClass = iconClasses[operacion.tipo] || iconClasses['Entrega realizada (entregado)']; // Usar un icono predeterminado si no se encuentra el tipo
   
-            const icon = document.createElement('div');
+            const icon = document.createElement('i');
             icon.classList.add('fa', iconClass);
             icon.style.color = 'blue'; // Cambia el color según tus necesidades
             icon.style.fontSize = '24px'; // Ajuste del tamaño del icono
+  
+            const markerIcon = {
+              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(new XMLSerializer().serializeToString(icon)),
+              scaledSize: new google.maps.Size(42, 42), // Ajuste del tamaño del icono
+            };
   
             const marker = new google.maps.Marker({
               position,
               map: this.map,
               title: operacion.tipo,
-              icon: {
-                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(icon.outerHTML),
-                scaledSize: new google.maps.Size(42, 42), // Ajuste del tamaño del icono
-              },
+              icon: markerIcon,
             });
   
             const infoContent = `
