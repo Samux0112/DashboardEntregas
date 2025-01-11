@@ -92,14 +92,14 @@
           const pathCoordinates = [];
           const markerPositions = new Map();
   
-          // Definición de íconos de marcador personalizados usando Font Awesome
-          const iconClasses = {
-            'Inicio de sesión': 'fa-user',
-            'Cambio de ubicación': 'fa-map-marker-alt',
-            'Terminar día': 'fa-clock',
-            'Entrega realizada (parcial)': 'fa-box-open',
-            'Entrega realizada (entregado)': 'fa-check',
-            'Entrega realizada (no_entregado)': 'fa-times',
+          // Definición de íconos de marcador personalizados usando Icons8
+          const iconUrls = {
+            'Inicio de sesión': 'https://img.icons8.com/fluency/48/000000/user.png',
+            'Cambio de ubicación': 'https://img.icons8.com/fluency/48/000000/location.png',
+            'Terminar día': 'https://img.icons8.com/fluency/48/000000/clock.png',
+            'Entrega realizada (parcial)': 'https://img.icons8.com/fluency/48/000000/open-box.png',
+            'Entrega realizada (entregado)': 'https://img.icons8.com/fluency/48/000000/checked.png',
+            'Entrega realizada (no_entregado)': 'https://img.icons8.com/fluency/48/000000/cancel.png',
           };
   
           this.operaciones.forEach((operacion) => {
@@ -118,23 +118,16 @@
             const position = { lat, lng };
             pathCoordinates.push(position);
   
-            let iconClass = iconClasses[operacion.tipo] || iconClasses['Entrega realizada (entregado)']; // Usar un icono predeterminado si no se encuentra el tipo
-  
-            const icon = document.createElement('i');
-            icon.classList.add('fa', iconClass);
-            icon.style.color = 'blue'; // Cambia el color según tus necesidades
-            icon.style.fontSize = '24px'; // Ajuste del tamaño del icono
-  
-            const markerIcon = {
-              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(new XMLSerializer().serializeToString(icon)),
-              scaledSize: new google.maps.Size(42, 42), // Ajuste del tamaño del icono
-            };
+            let iconUrl = iconUrls[operacion.tipo] || iconUrls['Entrega realizada (entregado)']; // Usar un icono predeterminado si no se encuentra el tipo
   
             const marker = new google.maps.Marker({
               position,
               map: this.map,
               title: operacion.tipo,
-              icon: markerIcon,
+              icon: {
+                url: iconUrl,
+                scaledSize: new google.maps.Size(42, 42), // Ajuste del tamaño del icono
+              },
             });
   
             const infoContent = `
