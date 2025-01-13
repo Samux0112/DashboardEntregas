@@ -6,7 +6,7 @@ import GoogleMap from '@/layout/GoogleMap.vue'; // Asegúrate de tener el paquet
 
 // Manejo de fecha y hora actual
 const fechaHoraActual = ref('');
-const rutas = ref(['SUP001', 'SUP002']); // Ejemplo de rutas
+const rutas = ref([]); // Lista de rutas obtenidas de localStorage
 const calendarValue = ref(new Date()); // Valor por defecto para la fecha
 const dropdownValue = ref(''); // Valor seleccionado del dropdown
 const operaciones = ref([]);
@@ -27,6 +27,16 @@ const actualizarFechaHora = () => {
     fechaHoraActual.value = now.toLocaleString('es-ES', opciones);
 };
 
+// Función para cargar las rutas desde localStorage
+const cargarRutas = () => {
+    const rutasGuardadas = localStorage.getItem('rutas');
+    if (rutasGuardadas) {
+        rutas.value = JSON.parse(rutasGuardadas);
+    } else {
+        rutas.value = [];
+    }
+};
+
 // Función para obtener las operaciones de una ruta específica
 const obtenerOperacionesRuta = async () => {
     try {
@@ -38,22 +48,26 @@ const obtenerOperacionesRuta = async () => {
             throw new Error('Token no disponible. Por favor, inicia sesión.');
         }
 
-        const response = await axios.get(`https://calidad-yesentregas-api.yes.com.sv/logs/${rutaId}/${fecha}/E`, {
+        const response = await axios.get(`https://calidad-yesentregas-api.yes.com.sv/logs/${rutaId}/${fecha}/T`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
 
         if (response.data) {
-            operaciones.value = response.data.map(log => ({
-                lat: parseFloat(log.json_accion.latitud),
-                lng: parseFloat(log.json_accion.longitud),
-                tipo: log.json_accion.Accion, // Tipo de acción
-                cliente: log.json_accion.kunnag, // Información del cliente
-                fechaHora: log.json_accion['fecha-hora'],
-                usuario: log.json_accion.Username, // Usuario
-                vbeln: log.json_accion.vbeln // Número de entrega
-            }));
+            operaciones.value = response.data
+                .filter(log => 
+                    ["Inicio de sesión", "Entrega realizada (parcial)","Entrega realizada (entregado)", "Entrega realizada (no_entregado)", "Terminar día", "Cambio de ubicación"].includes(log.json_accion.Accion)
+                )
+                .map(log => ({
+                    lat: parseFloat(log.json_accion.latitud),
+                    lng: parseFloat(log.json_accion.longitud),
+                    tipo: log.json_accion.Accion, // Tipo de acción
+                    cliente: log.json_accion.kunnag, // Información del cliente
+                    fechaHora: log.json_accion['fecha-hora'],
+                    usuario: log.json_accion.Username, // Usuario
+                    vbeln: log.json_accion.vbeln // Número de entrega
+                }));
 
             console.log('Operaciones obtenidas:', operaciones.value);
         } else {
@@ -79,33 +93,34 @@ const obtenerOperacionesRuta = async () => {
 onMounted(() => {
     actualizarFechaHora();
     setInterval(actualizarFechaHora, 1000);
+    cargarRutas(); // Cargar las rutas desde localStorage al montar el componente
 });
 </script>
+
 <template>
-  <div>
-    <!-- Fila con inputs y botón -->
-    <div class="flex items-center gap-x-4 mb-4">
-      <div class="flex items-center gap-x-2">
-        <div class="font-semibold text-xl">Ingresa la fecha:</div>
-        <DatePicker v-model="calendarValue" :showIcon="true" :showButtonBar="true" />
+    <div>
+      <!-- Fila con inputs y botón -->
+      <div class="flex items-center gap-x-4 mb-4">
+        <div class="flex items-center gap-x-2">
+          <div class="font-semibold text-xl">Ingresa la fecha:</div>
+          <DatePicker v-model="calendarValue" :showIcon="true" :showButtonBar="true" />
+        </div>
+        <div class="flex items-center gap-x-2">
+          <div class="font-semibold text-xl">Ingresa la ruta:</div>
+          <Select v-model="dropdownValue" :options="rutas" placeholder="Selecciona la ruta" />
+        </div>
+        <Button @click="obtenerOperacionesRuta" class="px-4 py-2 bg-blue-500 text-white rounded">Buscar</Button>
+      </div>  
+  
+      <!-- Contenedor para el mapa -->
+      <div class="flex h-screen">
+        <GoogleMap class="custom-google-map" :operaciones="operaciones" />
       </div>
-      <div class="flex items-center gap-x-2">
-        <div class="font-semibold text-xl">Ingresa la ruta:</div>
-        <Select v-model="dropdownValue" :options="rutas" placeholder="Selecciona la ruta" />
-      </div>
-      <Button @click="obtenerOperacionesRuta" class="px-4 py-2 bg-blue-500 text-white rounded">Buscar</Button>
-    </div>  
-
-    <!-- Contenedor para el mapa -->
-    <div class="flex h-screen">
-      <GoogleMap class="custom-google-map" :operaciones="operaciones" />
     </div>
-  </div>
-</template>
-
-<style scoped>
-.custom-google-map {
-    width: 100%; /* Ajusta el ancho del mapa */
-    height: calc(100% - 200px); /* Ajusta la altura del mapa restando el espacio para la fecha, ruta y botón */
-}
-</style>
+  </template>
+  <style scoped>
+  .custom-google-map {
+      width: 100%; /* Ajusta el ancho del mapa */
+      height: calc(100% - 0px); /* Ajusta la altura del mapa restando el espacio para la fecha, ruta y botón */
+  }
+  </style>

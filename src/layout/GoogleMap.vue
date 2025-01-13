@@ -55,7 +55,7 @@
           window.onGoogleMapsLoad = () => resolve();
   
           const script = document.createElement('script');
-          script.src = "https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places&callback=onGoogleMapsLoad";
+          script.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyBY9DdqQA0qfNATg16j54HHQtu-_hG4VJc&libraries=places&callback=onGoogleMapsLoad";
           script.onerror = reject;
           document.head.appendChild(script);
         });
@@ -94,12 +94,12 @@
   
           // Definición de íconos de marcador personalizados usando Icons8
           const iconUrls = {
-            'Inicio de sesión': 'https://img.icons8.com/fluency/48/000000/user.png',
-            'Cambio de ubicación': 'https://img.icons8.com/fluency/48/000000/location.png',
-            'Terminar día': 'https://img.icons8.com/fluency/48/000000/clock.png',
-            'Entrega realizada (parcial)': 'https://img.icons8.com/fluency/48/000000/open-box.png',
-            'Entrega realizada (entregado)': 'https://img.icons8.com/fluency/48/000000/checked.png',
-            'Entrega realizada (no_entregado)': 'https://img.icons8.com/fluency/48/000000/cancel.png',
+            'Inicio de sesión': 'https://img.icons8.com/stickers/50/nft-user.png',
+            'Cambio de ubicación': 'https://img.icons8.com/stickers/50/track-order.png',
+            'Terminar día': 'https://img.icons8.com/dusk/64/task-completed.png',
+            'Entrega realizada (parcial)': 'https://img.icons8.com/skeuomorphism/64/delivery.png',
+            'Entrega realizada (entregado)': 'https://img.icons8.com/stickers/50/paid.png',
+            'Entrega realizada (no_entregado)': 'https://img.icons8.com/stickers/50/delete-sign.png',
           };
   
           this.operaciones.forEach((operacion) => {

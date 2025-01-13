@@ -2,7 +2,9 @@ import { useLayout } from "@/layout/composables/layout";
 import router from '@/router';
 import axios from 'axios';
 import { defineStore } from 'pinia';
+
 const { showAlert } = useLayout();
+
 export const useAuthStore = defineStore('auth', {
     state: () => ({
         user: null,
@@ -31,6 +33,11 @@ export const useAuthStore = defineStore('auth', {
                 this.groups = response.data.user.groups;
                 this.token = response.data.token.access_token;
                 this.error = null;
+
+                // Guardar las rutas asignadas en localStorage
+                if (response.data.asigned) {
+                    localStorage.setItem('rutas', JSON.stringify(response.data.asigned));
+                }
 
                 // Verificar si el usuario tiene los permisos necesarios
                 const hasRequiredGroup = this.groups.includes('YesEntregas-Supervisor');
