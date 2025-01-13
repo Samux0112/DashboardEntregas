@@ -20,7 +20,14 @@ const routes = [
             {
                 path: 'dashboard',
                 name: 'dashboard',
-                component: () => import('@/views/Dashboard.vue')
+                component: () => import('@/views/Dashboard.vue'),
+                meta: { requiresAuth: true}
+            },
+            {
+                path: 'control-cestas', // Nueva ruta para la vista de entregas
+                name: 'control-cestas',
+                component: () => import('@/views/ControlCestas.vue'), // Ruta a la vista de entregas
+                meta: { requiresAuth: true}
             },
             
 

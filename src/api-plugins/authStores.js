@@ -5,13 +5,28 @@ import { defineStore } from 'pinia';
 
 const { showAlert } = useLayout();
 
+// Configurar el interceptor de Axios
+axios.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 export const useAuthStore = defineStore('auth', {
     state: () => ({
         user: null,
         groups: [],
         token: null,
         error: null,
-        location: null
+        location: null,
+        isMuted: false // Añadido para isMuted
     }),
 
     actions: {
@@ -196,6 +211,11 @@ export const useAuthStore = defineStore('auth', {
                     this.token = token;
                     if (location) {
                         this.location = JSON.parse(location);
+                    }
+
+                    // Guardar el token en el localStorage si no está guardado
+                    if (!localStorage.getItem('token')) {
+                        localStorage.setItem('token', this.token);
                     }
 
                     this.setAxiosToken(this.token);

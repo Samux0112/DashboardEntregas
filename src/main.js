@@ -29,5 +29,5 @@ app.use(PrimeVue, {
 });
 app.use(ToastService);
 app.use(ConfirmationService);
-
+// Configurar Axios como instancia global (opcional)
 app.mount('#app');
