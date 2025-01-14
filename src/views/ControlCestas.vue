@@ -6,14 +6,7 @@ import { useLayout } from '@/layout/composables/layout';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 import { FilterMatchMode } from '@primevue/core/api';
-import Dialog from 'primevue/dialog';
-import InputNumber from 'primevue/inputnumber';
-import Button from 'primevue/button';
-import DataTable from 'primevue/datatable';
-import Column from 'primevue/column';
-import Toolbar from 'primevue/toolbar';
-import Select from 'primevue/select';
-import InputText from 'primevue/inputtext';
+
 
 const { showAlert } = useLayout();
 const router = useRouter();
@@ -27,8 +20,10 @@ const clientes = ref([]);
 const clientesFiltrados = ref([]);
 const searchTerm = ref('');
 const selectedRuta = ref('');
-const cantidad = ref(0);
-const cantidadPalets = ref(0);
+const cantidad = ref(); // Initialize as a ref to a number
+const cantidadPalets = ref(); // Initialize as a ref to a number
+const startDate = ref(new Date());
+const endDate = ref(new Date());
 
 const selectedClienteVBELN = ref({});
 const showEntradaDialog = ref(false);
@@ -43,6 +38,37 @@ const cargarRutas = () => {
         rutas.value = JSON.parse(rutasGuardadas);
     } else {
         rutas.value = [];
+    }
+};
+
+// Función para obtener la cantidad de jabas y palets
+const obtenerCantidadJabasPalets = async (kunnr, vbeln = '') => {
+    try {
+        const response = await axios.post(
+            'https://calidad-yesentregas-api.yes.com.sv/control-cestas/',
+            {
+                kunnr: kunnr,
+                vbeln: vbeln,
+                start_date: startDate.value.toISOString().split('T')[0],
+                end_date: endDate.value.toISOString().split('T')[0]
+            }
+        );
+        return {
+            cantidad: response.data.cantidad || 0,
+            cantidad_palets: response.data.cantidad_palets || 0
+        };
+    } catch (error) {
+        console.error('Error al obtener la cantidad de jabas y palets:', error);
+        showAlert({
+            title: 'Error',
+            text: 'Hubo un problema al obtener la cantidad de jabas y palets.',
+            icon: 'error',
+            confirmButtonText: 'Entendido',
+        });
+        return {
+            cantidad: 0,
+            cantidad_palets: 0
+        };
     }
 };
 
@@ -73,6 +99,11 @@ const cargarClientes = async () => {
       // Inicializar selectedClienteVBELN para cada cliente
       for (const cliente of clientes.value) {
         selectedClienteVBELN.value[cliente.KUNNR] = null;
+
+        // Obtener cantidad de jabas y palets
+        const { cantidad, cantidad_palets } = await obtenerCantidadJabasPalets(cliente.KUNNR);
+        cliente.cantidad = cantidad;
+        cliente.cantidad_palets = cantidad_palets;
 
         // Cargar VBELN asociados al cliente
         const responseVBELN = await axios.post(
@@ -139,15 +170,21 @@ function exportCSV() {
 }
 
 // Función para abrir el diálogo de insertar entrada
-const abrirDialogoEntrada = (cliente) => {
+const abrirDialogoEntrada = async (cliente) => {
   clienteSeleccionado.value = cliente;
+  const { cantidad: newCantidad, cantidad_palets: newCantidadPalets } = await obtenerCantidadJabasPalets(cliente.KUNNR);
+  cantidad.value = newCantidad;
+  cantidadPalets.value = newCantidadPalets;
   showEntradaDialog.value = true;
 };
 
 // Función para abrir el diálogo de insertar salida
-const abrirDialogoSalida = (cliente, vbeln) => {
+const abrirDialogoSalida = async (cliente, vbeln) => {
   clienteSeleccionado.value = cliente;
   vbelnSeleccionado.value = vbeln;
+  const { cantidad: newCantidad, cantidad_palets: newCantidadPalets } = await obtenerCantidadJabasPalets(cliente.KUNNR, vbeln);
+  cantidad.value = newCantidad;
+  cantidadPalets.value = newCantidadPalets;
   showSalidaDialog.value = true;
 };
 
@@ -250,6 +287,8 @@ const hideDialog = () => {
   showSalidaDialog.value = false;
 };
 
+watch(endDate, cargarClientes);
+
 onMounted(() => {
   authStore.loadSession(); // Cargar sesión al montar el componente
   cargarRutas();
@@ -264,9 +303,20 @@ onMounted(() => {
       </template>
 
       <template #end>
-        <Button label="Export" icon="pi pi-upload" severity="secondary" @click="exportCSV($event)" />
+        <Button label="Exportar en excel" icon="pi pi-upload" severity="secondary" @click="exportCSV($event)" />
       </template>
     </Toolbar>
+
+    <div class="p-grid">
+      <div class="p-col p-fluid">
+        <label for="startDate">Fecha de Inicio</label>
+        <Calendar id="startDate" v-model="startDate" dateFormat="yy-mm-dd" />
+      </div>
+      <div class="p-col p-fluid">
+        <label for="endDate">Fecha de Fin</label>
+        <Calendar id="endDate" v-model="endDate" dateFormat="yy-mm-dd" />
+      </div>
+    </div>
 
     <DataTable
       ref="dt"
@@ -294,10 +344,12 @@ onMounted(() => {
 
       <Column expander style="width: 3rem"></Column>
       <Column selectionMode="multiple" :exportable="false"></Column>
-      <Column field="KUNNR" header="KUNNR"></Column>
+      <Column field="KUNNR" header="Kunnr"></Column>
       <Column field="NAME1" header="Razon social"></Column>
       <Column field="NAME2" header="Nombre"></Column>
       <Column field="STRAS" header="Dirección"></Column>
+      <Column field="cantidad" header="# de jabas"></Column>
+      <Column field="cantidad_palets" header="# de palets"></Column>
       <Column header="Acciones">
         <template #body="slotProps">
           <Button label="Insertar Entrada" @click="() => abrirDialogoEntrada(slotProps.data)" />
@@ -328,12 +380,12 @@ onMounted(() => {
     >
       <div class="field">
         <label for="cantidad" class="mr-2">Cantidad Jabas</label>
-        <InputText id="cantidad" v-model="cantidad" class="small-input"/>
+        <InputNumber id="cantidad" v-model="cantidad.value" class="small-input"/>
       </div>
       <br>
       <div class="field">
         <label for="cantidad-palets" class="mr-1">Cantidad Palets</label>
-        <InputText id="cantidad-palets" v-model="cantidadPalets" class="small-input"/>
+        <InputNumber id="cantidad-palets" v-model="cantidadPalets.value" class="small-input"/>
       </div>
       <template #footer>
         <Button
@@ -361,12 +413,12 @@ onMounted(() => {
     >
       <div class="field">
         <label for="cantidad-salida" class="mr-2">Cantidad Jabas</label>
-        <InputText id="cantidad-salida" v-model="cantidad" class="small-input" />
+        <InputNumber id="cantidad-salida" v-model="cantidad.value" class="small-input" />
       </div>
       <br>
       <div class="field">
         <label for="cantidad-palets-salida" class="mr-1">Cantidad Palets</label>
-        <InputText id="cantidad-palets-salida" v-model="cantidadPalets" class="small-input"/>
+        <InputNumber id="cantidad-palets-salida" v-model="cantidadPalets.value" class="small-input"/>
       </div>
       <template #footer>
         <Button
@@ -391,6 +443,6 @@ onMounted(() => {
   padding: 1rem;
 }
 .small-input {
-  width: 50px;
+  width: 100px;
 }
 </style>
