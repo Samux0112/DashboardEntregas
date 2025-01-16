@@ -2,13 +2,14 @@
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
 import Swal from 'sweetalert2';
-import GoogleMap from '@/layout/GoogleMap.vue'; // Asegúrate de tener el paquete instalado
+import GoogleMap from '@/layout/GoogleMap.vue'; // Asegúrate de tener el componente GoogleMap
 
 // Manejo de fecha y hora actual
 const fechaHoraActual = ref('');
 const rutas = ref([]); // Lista de rutas obtenidas de localStorage
 const calendarValue = ref(new Date()); // Valor por defecto para la fecha
-const dropdownValue = ref(''); // Valor seleccionado del dropdown
+const dropdownValue = ref(''); // Valor seleccionado del dropdown para la ruta
+const filterValue = ref('Todas las ubicaciones'); // Valor seleccionado del dropdown para el filtro
 const operaciones = ref([]);
 
 // Función para actualizar la fecha y hora cada segundo
@@ -40,15 +41,31 @@ const cargarRutas = () => {
 // Función para obtener las operaciones de una ruta específica
 const obtenerOperacionesRuta = async () => {
     try {
+        if (!dropdownValue.value || !calendarValue.value || !filterValue.value) {
+            Swal.fire({
+                title: 'Campos incompletos',
+                text: 'Por favor, selecciona la ruta, fecha y filtro antes de buscar.',
+                icon: 'warning',
+                confirmButtonText: 'Entendido',
+            });
+            return;
+        }
+
         const rutaId = dropdownValue.value;
         const fecha = calendarValue.value.toLocaleDateString('es-ES').replace(/\//g, '-'); // Formato DD-MM-YYYY
+        const filtroMap = {
+            'Todas las ubicaciones': 'T',
+            'No incluir cambios de ubicacion': 'E',
+            'Cambios de ubicacion': 'U'
+        };
+        const filtro = filtroMap[filterValue.value]; // Mapear el valor del filtro seleccionado
         const token = localStorage.getItem('token');
 
         if (!token) {
             throw new Error('Token no disponible. Por favor, inicia sesión.');
         }
 
-        const response = await axios.get(`https://calidad-yesentregas-api.yes.com.sv/logs/${rutaId}/${fecha}/T`, {
+        const response = await axios.get(`https://calidad-yesentregas-api.yes.com.sv/logs/${rutaId}/${fecha}/${filtro}`, {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -102,15 +119,19 @@ onMounted(() => {
       <!-- Fila con inputs y botón -->
       <div class="flex items-center gap-x-4 mb-4">
         <div class="flex items-center gap-x-2">
-          <div class="font-semibold text-xl">Ingresa la fecha:</div>
+          <div class="font-semibold text-l">Ingresa la fecha:</div>
           <DatePicker v-model="calendarValue" :showIcon="true" :showButtonBar="true" />
         </div>
         <div class="flex items-center gap-x-2">
-          <div class="font-semibold text-xl">Ingresa la ruta:</div>
+          <div class="font-semibold text-l">Ingresa la ruta:</div>
           <Select v-model="dropdownValue" :options="rutas" placeholder="Selecciona la ruta" />
         </div>
+        <div class="flex items-center gap-x-2">
+          <div class="font-semibold text-l">Filtrar por:</div>
+          <Select v-model="filterValue" :options="['Todas las ubicaciones', 'No incluir cambios de ubicacion', 'Cambios de ubicacion']" placeholder="Selecciona el filtro" />
+        </div>
         <Button @click="obtenerOperacionesRuta" class="px-4 py-2 bg-blue-500 text-white rounded">Buscar</Button>
-      </div>  
+      </div>
   
       <!-- Contenedor para el mapa -->
       <div class="flex h-screen">
@@ -118,9 +139,10 @@ onMounted(() => {
       </div>
     </div>
   </template>
+  
   <style scoped>
   .custom-google-map {
-      width: 100%; /* Ajusta el ancho del mapa */
-      height: calc(100% - 0px); /* Ajusta la altura del mapa restando el espacio para la fecha, ruta y botón */
+    width: 100%; /* Ajusta el ancho del mapa */
+    height: calc(100% - 0px); /* Ajusta la altura del mapa restando el espacio para la fecha, ruta y botón */
   }
   </style>
