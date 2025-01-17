@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
+import { useLayout } from "@/layout/composables/layout";
 import Swal from 'sweetalert2';
 import GoogleMap from '@/layout/GoogleMap.vue'; // Asegúrate de tener el componente GoogleMap
 const { showAlert } = useLayout();
