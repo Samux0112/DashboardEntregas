@@ -29,7 +29,12 @@ const routes = [
                 component: () => import('@/views/ControlCestas.vue'), // Ruta a la vista de entregas
                 meta: { requiresAuth: true}
             },
-            
+            {
+                path: 'log-actividades', // Nueva ruta para la vista de entregas
+                name: 'log-actividades',
+                component: () => import('@/views/LogsDeActividades.vue'), // Ruta a la vista de entregas
+                meta: { requiresAuth: true}
+            },
 
         ]
     }

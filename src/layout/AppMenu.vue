@@ -16,6 +16,11 @@ const model = ref([
         icon: "pi pi-fw pi-shopping-cart",
         to: { name: "control-cestas" },
       },
+      {
+        label: "Logs de actividades",
+        icon: "pi pi-fw pi-copy",
+        to: { name: "log-actividades" },
+      },
     ],
   },
   

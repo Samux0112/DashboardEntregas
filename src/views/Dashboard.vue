@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import GoogleMap from '@/layout/GoogleMap.vue'; // Asegúrate de tener el componente GoogleMap
-
+const { showAlert } = useLayout();
 // Manejo de fecha y hora actual
 const fechaHoraActual = ref('');
 const rutas = ref([]); // Lista de rutas obtenidas de localStorage
@@ -42,7 +42,7 @@ const cargarRutas = () => {
 const obtenerOperacionesRuta = async () => {
     try {
         if (!dropdownValue.value || !calendarValue.value || !filterValue.value) {
-            Swal.fire({
+            ShowAlert({
                 title: 'Campos incompletos',
                 text: 'Por favor, selecciona la ruta, fecha y filtro antes de buscar.',
                 icon: 'warning',
@@ -88,7 +88,7 @@ const obtenerOperacionesRuta = async () => {
 
             console.log('Operaciones obtenidas:', operaciones.value);
         } else {
-            Swal.fire({
+            showAlert({
                 title: 'Sin operaciones',
                 text: 'No se encontraron operaciones para esta ruta.',
                 icon: 'info',
@@ -97,7 +97,7 @@ const obtenerOperacionesRuta = async () => {
         }
     } catch (error) {
         console.error('Error al obtener las operaciones de la ruta:', error);
-        Swal.fire({
+        showAlert({
             title: 'Error',
             text: 'Hubo un problema al obtener las operaciones de la ruta.',
             icon: 'error',
