@@ -172,7 +172,7 @@ onMounted(() => {
           <Calendar id="endDate" v-model="endDate" dateFormat="yy-mm-dd" />
         </div>
         <div class="ml-2">
-          <label for="actions">Filtrar por acciones</label>
+          <label for="actions">Acciones</label>
           <MultiSelect 
             id="actions"
             v-model="selectedActions" 
