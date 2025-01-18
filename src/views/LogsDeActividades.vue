@@ -8,6 +8,7 @@ import { useToast } from "primevue/usetoast";
 import { FilterMatchMode } from "@primevue/core/api";
 import Swal from 'sweetalert2';
 import MultiSelect from 'primevue/multiselect';
+import ProgressSpinner from 'primevue/progressspinner';
 
 const { showAlert } = useLayout();
 const router = useRouter();
@@ -26,6 +27,7 @@ const endDate = ref(new Date());
 const logs = ref([]); // Variable reactiva para almacenar los logs
 const filteredLogs = ref([]); // Variable reactiva para almacenar los logs filtrados
 const selectedActions = ref([]); // Acciones seleccionadas para el filtro
+const loadingLogs = ref(false); // Variable de estado de carga
 
 const availableActions = [
   { label: 'Inicio de sesión', value: 'Inicio de sesión' },
@@ -76,6 +78,8 @@ const obtenerLogs = async () => {
       return;
     }
 
+    loadingLogs.value = true; // Iniciar carga
+
     const rutaId = selectedRuta.value;
     const token = localStorage.getItem('token');
 
@@ -95,7 +99,6 @@ const obtenerLogs = async () => {
 
     logs.value = logsTemp;
     filtrarLogs();
-
   } catch (error) {
     console.error('Error al obtener los logs:', error);
     showAlert({
@@ -104,6 +107,8 @@ const obtenerLogs = async () => {
       icon: 'error',
       confirmButtonText: 'Entendido',
     });
+  } finally {
+    loadingLogs.value = false; // Terminar carga
   }
 };
 
@@ -210,7 +215,11 @@ onMounted(() => {
         </div>
       </template>
     </Toolbar>
+    <div v-if="loadingLogs" class="flex justify-center items-center">
+      <ProgressSpinner />
+    </div>
     <DataTable
+      v-else
       ref="dt"
       :value="filteredLogs"
       dataKey="id"
@@ -241,8 +250,7 @@ onMounted(() => {
       <Column field="json_accion.vbeln" header="Número de Entrega" sortable></Column>
       <Column field="json_accion.latitud" header="Latitud del cliente" sortable></Column>
       <Column field="json_accion.longitud" header="Longitud cliente" sortable></Column>
-      <Column field="json_accion.nota_aclaratoria" header="Georeferncia de entrega" sortable></Column>
-
+      <Column field="json_accion.nota_aclaratoria" header="Georeferencia de entrega" sortable></Column>
     </DataTable>
   </div>
 </template>

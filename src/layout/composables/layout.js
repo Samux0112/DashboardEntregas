@@ -111,7 +111,6 @@ export function useLayout() {
 
     const getLightModeStyles = computed(() => layoutConfig.lightModeStyles);
 
-    // Detect system dark mode preference and update layoutConfig accordingly
     const updateDarkModeFromSystem = () => {
         const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         layoutConfig.darkTheme = isSystemDark;
@@ -131,7 +130,6 @@ export function useLayout() {
         document.documentElement.classList.toggle('app-dark', newVal);
     });
 
-    // Function to show SweetAlert2 alert adapted to the current theme
     const showAlert = (titleOrOptions, text = '', icon = '', customOptions = {}) => {
         const isDark = layoutConfig.darkTheme;
         const primaryColor = getPrimary.value;
@@ -162,6 +160,10 @@ export function useLayout() {
         return Swal.fire(options);
     };
 
+    const closeAlert = () => {
+        Swal.close();
+    };
+
     return {
         layoutConfig,
         layoutState,
@@ -175,5 +177,6 @@ export function useLayout() {
         setActiveMenuItem,
         toggleDarkMode,
         showAlert,
+        closeAlert,
     };
 }

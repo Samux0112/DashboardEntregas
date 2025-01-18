@@ -7,7 +7,8 @@ import { useRouter } from "vue-router";
 import { useToast } from "primevue/usetoast";
 import { FilterMatchMode } from "@primevue/core/api";
 
-const { showAlert } = useLayout();
+// Asegúrate de que estas funciones estén disponibles desde el composable useLayout
+const { showAlert, closeAlert } = useLayout();
 const router = useRouter();
 const authStore = useAuthStore();
 const toast = useToast();
@@ -31,6 +32,8 @@ const cantidadEntradas = ref(0);
 const cantidadPaletsEntradas = ref(0);
 const cantidadSalidas = ref(0);
 const cantidadPaletsSalidas = ref(0);
+
+const loading = ref(false); // Bandera de carga
 
 const cargarRutas = () => {
   const rutasGuardadas = localStorage.getItem("rutas");
@@ -98,6 +101,14 @@ const cargarClientes = async () => {
       return;
     }
 
+    loading.value = true; // Iniciar carga
+    showAlert({
+      title: "Cargando",
+      text: "Cargando los clientes...",
+      icon: "info",
+      showConfirmButton: false,
+    });
+
     const responseClientes = await axios.post(
       "https://calidad-yesentregas-api.yes.com.sv/clientes/",
       {
@@ -131,13 +142,15 @@ const cargarClientes = async () => {
       }
 
       filtrarClientes();
+      closeAlert(); // Cerrar el alert de cargando
       showAlert({
-        title: "Clientes cargados",
+        title: "Éxito",
         text: "Los clientes han sido cargados correctamente.",
         icon: "success",
         confirmButtonText: "Entendido",
       });
     } else {
+      closeAlert(); // Cerrar el alert de cargando
       showAlert({
         title: "Sin clientes",
         text: "No se encontraron clientes para la ruta seleccionada.",
@@ -147,12 +160,15 @@ const cargarClientes = async () => {
     }
   } catch (error) {
     console.error("Error al cargar los clientes:", error);
+    closeAlert(); // Cerrar el alert de cargando
     showAlert({
       title: "Error",
       text: "Hubo un problema al cargar los clientes.",
       icon: "error",
       confirmButtonText: "Entendido",
     });
+  } finally {
+    loading.value = false; // Terminar carga
   }
 };
 
@@ -226,9 +242,9 @@ const filters = ref({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
 });
 
-function exportCSV() {
+const exportCSV = () => {
   dt.value.exportCSV();
-}
+};
 
 const abrirDialogoEntrada = (cliente) => {
   clienteSeleccionado.value = cliente;
@@ -356,6 +372,7 @@ onMounted(() => {
             :options="rutas"
             placeholder="Rutas"
             @change="cargarClientes"
+            :disabled="loading"
           />
         </div>
         <div class="ml-2">
@@ -372,17 +389,16 @@ onMounted(() => {
         <div class="ml-2">
           <Button label="Cargar Salidas" @click="cargarInventarioSalidas" />
         </div>
-        <div class="ml-2"> 
+        <div class="ml-2">
           <Button
-          label="Exportar en excel"
-          icon="pi pi-upload"
-          severity="secondary"
-          @click="exportCSV($event)"
-        />
+            label="Exportar en excel"
+            icon="pi pi-upload"
+            severity="secondary"
+            @click="exportCSV($event)"
+          />
         </div>
       </template>
       <template #end>
-        
       </template>
     </Toolbar>
     <DataTable
