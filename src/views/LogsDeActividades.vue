@@ -172,7 +172,6 @@ onMounted(() => {
           <Calendar id="endDate" v-model="endDate" dateFormat="yy-mm-dd" />
         </div>
         <div class="ml-2">
-          <label for="actions">Acciones</label>
           <MultiSelect 
             id="actions"
             v-model="selectedActions" 
@@ -254,3 +253,8 @@ onMounted(() => {
     </DataTable>
   </div>
 </template>
+<style scoped>
+.card {
+  padding: 1rem;
+}
+</style>
