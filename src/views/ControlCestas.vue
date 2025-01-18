@@ -571,9 +571,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.card {
-  padding: 1rem;
-}
 .small-input {
   width: 50px;
 }
