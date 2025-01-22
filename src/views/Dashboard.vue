@@ -43,7 +43,7 @@ const cargarRutas = () => {
 const obtenerOperacionesRuta = async () => {
     try {
         if (!dropdownValue.value || !calendarValue.value || !filterValue.value) {
-            ShowAlert({
+            showAlert({
                 title: 'Campos incompletos',
                 text: 'Por favor, selecciona la ruta, fecha y filtro antes de buscar.',
                 icon: 'warning',
@@ -73,19 +73,30 @@ const obtenerOperacionesRuta = async () => {
         });
 
         if (response.data) {
+            let entregaCount = 0;
             operaciones.value = response.data
                 .filter(log => 
                     ["Inicio de sesión", "Entrega realizada (parcial)","Entrega realizada (entregado)", "Entrega realizada (no_entregado)", "Terminar día", "Cambio de ubicación"].includes(log.json_accion.Accion)
                 )
-                .map(log => ({
-                    lat: parseFloat(log.json_accion.latitud),
-                    lng: parseFloat(log.json_accion.longitud),
-                    tipo: log.json_accion.Accion, // Tipo de acción
-                    cliente: log.json_accion.kunnag, // Información del cliente
-                    fechaHora: log.json_accion['fecha-hora'],
-                    usuario: log.json_accion.Username, // Usuario
-                    vbeln: log.json_accion.vbeln // Número de entrega
-                }));
+                .map(log => {
+                    let tipo = log.json_accion.Accion;
+                    let tipoSinNumero = tipo;
+                    let numero = null;
+                    if (["Entrega realizada (parcial)", "Entrega realizada (entregado)", "Entrega realizada (no_entregado)"].includes(tipo)) {
+                        numero = ++entregaCount;
+                    }
+                    return {
+                        lat: parseFloat(log.json_accion.latitud),
+                        lng: parseFloat(log.json_accion.longitud),
+                        tipo: tipo, // Tipo de acción con número de entrega si aplica
+                        tipoSinNumero: tipoSinNumero, // Tipo de acción sin número de entrega
+                        cliente: log.json_accion.kunnag, // Información del cliente
+                        fechaHora: log.json_accion['fecha-hora'],
+                        usuario: log.json_accion.Username, // Usuario
+                        vbeln: log.json_accion.vbeln, // Número de entrega
+                        numero: numero // Número de entrega (solo para entregas)
+                    };
+                });
 
             console.log('Operaciones obtenidas:', operaciones.value);
         } else {
@@ -139,11 +150,11 @@ onMounted(() => {
         <GoogleMap class="custom-google-map" :operaciones="operaciones" />
       </div>
     </div>
-  </template>
+</template>
   
-  <style scoped>
-  .custom-google-map {
+<style scoped>
+.custom-google-map {
     width: 100%; /* Ajusta el ancho del mapa */
     height: calc(100% - 0px); /* Ajusta la altura del mapa restando el espacio para la fecha, ruta y botón */
-  }
-  </style>
+}
+</style>

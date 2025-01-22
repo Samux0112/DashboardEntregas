@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, computed, nextTick, watch } from "vue";
 import axios from "axios";
 import { useAuthStore } from "@/api-plugins/authStores";
 import { useLayout } from "@/layout/composables/layout";
@@ -7,10 +7,8 @@ import { useRouter } from "vue-router";
 import { useToast } from "primevue/usetoast";
 import { FilterMatchMode } from "@primevue/core/api";
 import Swal from 'sweetalert2';
-import MultiSelect from 'primevue/multiselect';
-import ProgressSpinner from 'primevue/progressspinner';
 
-const { showAlert } = useLayout();
+const { showAlert, isDarkTheme, getDarkModeStyles, getLightModeStyles, toggleDarkMode } = useLayout();
 const router = useRouter();
 const authStore = useAuthStore();
 const toast = useToast();
@@ -28,6 +26,8 @@ const logs = ref([]); // Variable reactiva para almacenar los logs
 const filteredLogs = ref([]); // Variable reactiva para almacenar los logs filtrados
 const selectedActions = ref([]); // Acciones seleccionadas para el filtro
 const loadingLogs = ref(false); // Variable de estado de carga
+const displayMapDialog = ref(false); // Variable para mostrar el diálogo del mapa
+const selectedLog = ref(null); // Variable para almacenar el log seleccionado
 
 const availableActions = [
   { label: 'Inicio de sesión', value: 'Inicio de sesión' },
@@ -143,6 +143,70 @@ function exportCSV() {
   dt.value.exportCSV();
 }
 
+// Función para abrir el diálogo del mapa y mostrar la georeferencia
+const showMapDialog = (log) => {
+  selectedLog.value = log;
+  displayMapDialog.value = true;
+  nextTick(() => {
+    const entregadorPos = { lat: parseFloat(log.json_accion.latitudEntregador), lng: parseFloat(log.json_accion.longitudEntregador) };
+    const clientePos = { lat: parseFloat(log.json_accion.latitudCliente), lng: parseFloat(log.json_accion.longitudCliente) };
+    const mapOptions = {
+      center: entregadorPos,
+      zoom: 10,
+      styles: isDarkTheme.value ? getDarkModeStyles.value : getLightModeStyles.value
+    };
+    const map = new google.maps.Map(document.getElementById('map'), mapOptions);
+
+    // Crear los marcadores
+    const entregadorMarker = new google.maps.Marker({
+      position: entregadorPos,
+      map,
+      title: "Entregador",
+      icon: 'https://img.icons8.com/stickers/50/sell.png' // Icono personalizado para el entregador
+    });
+    const clienteMarker = new google.maps.Marker({
+      position: clientePos,
+      map,
+      title: "Cliente",
+      icon: 'https://img.icons8.com/stickers/50/budget.png' // Icono personalizado para el cliente
+    });
+
+    // Crear la línea entre los puntos
+    const line = new google.maps.Polyline({
+      path: [entregadorPos, clientePos],
+      geodesic: true,
+      strokeColor: '#e98d58',
+      strokeOpacity: 1.0,
+      strokeWeight: 4,
+    });
+    line.setMap(map);
+
+    // Crear el InfoWindow y anclarlo a la línea
+    const distance = log.json_accion.nota_aclaratoria;
+    const infowindow = new google.maps.InfoWindow({
+      content: `<div style="color:black;">Esta entrega se realizo a ${distance}</div>`
+    });
+
+    // Posicionar el InfoWindow en el medio de la línea
+    const midPoint = {
+      lat: (entregadorPos.lat + clientePos.lat) / 2,
+      lng: (entregadorPos.lng + clientePos.lng) / 2,
+    };
+    infowindow.setPosition(midPoint);
+    infowindow.open(map);
+
+    // Función para abrir el InfoWindow
+    const openInfoWindow = () => {
+      infowindow.open(map);
+    };
+
+    // Agregar eventos para mostrar el InfoWindow al tocar los marcadores y la línea
+    entregadorMarker.addListener('click', openInfoWindow);
+    clienteMarker.addListener('click', openInfoWindow);
+    line.addListener('click', openInfoWindow);
+  });
+};
+
 onMounted(() => {
   authStore.loadSession();
   cargarRutas();
@@ -160,7 +224,6 @@ onMounted(() => {
             v-model="selectedRuta"
             :options="rutas"
             placeholder="Rutas"
-            @change="cargarClientes"
           />
         </div>
         <div class="ml-2">
@@ -223,10 +286,11 @@ onMounted(() => {
       :value="filteredLogs"
       dataKey="id"
       :paginator="true"
-      :rows="10"
+      :rows="25"
       paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
       :rowsPerPageOptions="[5, 10, 25]"
       currentPageReportTemplate="Mostrando del {first} al {last} de {totalRecords} logs"
+      class="compact-table"
     >
       <template #header>
         <div class="flex flex-wrap gap-2 items-center justify-between">
@@ -244,17 +308,35 @@ onMounted(() => {
       </template>
       <Column field="json_accion.fecha-hora" header="Fecha y Hora" sortable></Column>
       <Column field="json_accion.Accion" header="Acción" sortable></Column>
-      <Column field="json_accion.kunnag" header="Código Cliente" sortable></Column>
+      <Column field="json_accion.kunnag" header="Cód. Cliente" sortable></Column>
       <Column field="json_accion.Username" header="Usuario" sortable></Column>
-      <Column field="json_accion.vbeln" header="Número de Entrega" sortable></Column>
-      <Column field="json_accion.latitud" header="Latitud del cliente" sortable></Column>
-      <Column field="json_accion.longitud" header="Longitud cliente" sortable></Column>
-      <Column field="json_accion.nota_aclaratoria" header="Georeferencia de entrega" sortable></Column>
+      <Column field="json_accion.vbeln" header="Número de Factura" sortable></Column>
+      <Column header="Georeferencia del entregador y el cliente">
+        <template #body="slotProps">
+          <Button icon="pi pi-map" @click="showMapDialog(slotProps.data)" />
+        </template>
+      </Column>
+      <Column field="json_accion.nota_aclaratoria" header="Diferencia" sortable></Column>
     </DataTable>
+
+    <!-- Dialogo para el mapa -->
+    <Dialog header="Mapa de Referencia" v-model:visible="displayMapDialog" width="100%" modal>
+      <div id="map" style="height:500px;"></div>
+    </Dialog>
   </div>
 </template>
+
 <style scoped>
 .card {
   padding: 1rem;
+}
+
+/* Estilos para compactar la tabla */
+.compact-table .p-datatable-tbody > tr > td {
+  padding: 0.5rem 0.75rem; /* Reduce el padding de las celdas */
+}
+
+.compact-table .p-datatable-thead > tr > th {
+  padding: 0.5rem 0.75rem; /* Reduce el padding de los encabezados */
 }
 </style>
