@@ -286,9 +286,9 @@ onMounted(() => {
       :value="filteredLogs"
       dataKey="id"
       :paginator="true"
-      :rows="25"
+      :rows="50"
       paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-      :rowsPerPageOptions="[5, 10, 25]"
+      :rowsPerPageOptions="[50, 75 , 100]"
       currentPageReportTemplate="Mostrando del {first} al {last} de {totalRecords} logs"
       class="compact-table"
     >
@@ -306,17 +306,17 @@ onMounted(() => {
           </IconField>
         </div>
       </template>
-      <Column field="json_accion.fecha-hora" header="Fecha y Hora" sortable></Column>
-      <Column field="json_accion.Accion" header="Acción" sortable></Column>
-      <Column field="json_accion.kunnag" header="Cód. Cliente" sortable></Column>
-      <Column field="json_accion.Username" header="Usuario" sortable></Column>
-      <Column field="json_accion.vbeln" header="Número de Factura" sortable></Column>
-      <Column header="Georeferencia del entregador y el cliente">
+      <Column field="json_accion.fecha-hora" header="Fecha y Hora" sortable style="width: 100px;"></Column>
+      <Column field="json_accion.Accion" header="Acción" sortable style="width: 100px;"></Column>
+      <Column field="json_accion.kunnag" header="Cód. Cliente" sortable style="width: 100px;"></Column>
+      <Column field="json_accion.Username" header="Usuario" sortable style="width: 100px;"></Column>
+      <Column field="json_accion.vbeln" header="Número de Factura" sortable style="width: 100px;"></Column>
+      <Column header="Georeferencia del entregador y el cliente" style="width: 100px;">
         <template #body="slotProps">
           <Button icon="pi pi-map" @click="showMapDialog(slotProps.data)" />
         </template>
       </Column>
-      <Column field="json_accion.nota_aclaratoria" header="Diferencia" sortable></Column>
+      <Column field="json_accion.nota_aclaratoria" header="Diferencia" sortable style="width: 150px;"></Column>
     </DataTable>
 
     <!-- Dialogo para el mapa -->
@@ -332,12 +332,4 @@ onMounted(() => {
   padding: 1rem;
 }
 
-/* Estilos para compactar la tabla */
-.compact-table .p-datatable-tbody > tr > td {
-  padding: 0.5rem 0.75rem; /* Reduce el padding de las celdas */
-}
-
-.compact-table .p-datatable-thead > tr > th {
-  padding: 0.5rem 0.75rem; /* Reduce el padding de los encabezados */
-}
 </style>
