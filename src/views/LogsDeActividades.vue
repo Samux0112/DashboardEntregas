@@ -184,7 +184,7 @@ const showMapDialog = (log) => {
     // Crear el InfoWindow y anclarlo a la línea
     const distance = log.json_accion.nota_aclaratoria;
     const infowindow = new google.maps.InfoWindow({
-      content: `<div style="color:black;">Esta entrega se realizo a ${distance}</div>`
+      content: `<div style="color:black;font-weight: bold;">Esta entrega se realizo a ${distance}</div>`
     });
 
     // Posicionar el InfoWindow en el medio de la línea
@@ -320,8 +320,9 @@ onMounted(() => {
     </DataTable>
 
     <!-- Dialogo para el mapa -->
-    <Dialog header="Mapa de Referencia" v-model:visible="displayMapDialog" width="100%" modal>
-      <div id="map" style="height:500px;"></div>
+    <Dialog header="Mapa de Referencia" v-model:visible="displayMapDialog" width="100%" :style="{ width: '90vw', maxWidth: '1200px' }"
+    :breakpoints="{ '960px': '95vw', '640px': '100vw' }" modal>
+      <div id="map" style="height:70vh; width:100%;"></div>
     </Dialog>
   </div>
 </template>
