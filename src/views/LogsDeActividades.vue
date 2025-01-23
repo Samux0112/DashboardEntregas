@@ -28,6 +28,8 @@ const selectedActions = ref([]); // Acciones seleccionadas para el filtro
 const loadingLogs = ref(false); // Variable de estado de carga
 const displayMapDialog = ref(false); // Variable para mostrar el diálogo del mapa
 const selectedLog = ref(null); // Variable para almacenar el log seleccionado
+const displayImageDialog = ref(false); // Variable para mostrar el diálogo de la imagen
+const imageUrl = ref(""); // Variable para almacenar la URL de la imagen
 
 const availableActions = [
   { label: 'Inicio de sesión', value: 'Inicio de sesión' },
@@ -207,6 +209,42 @@ const showMapDialog = (log) => {
   });
 };
 
+// Función para mostrar la imagen del cliente
+const showImageDialog = async (codCliente) => {
+  const token = localStorage.getItem('token');
+
+  if (!token) {
+    showAlert({
+      title: 'Error',
+      text: 'Token no disponible. Por favor, inicia sesión.',
+      icon: 'error',
+      confirmButtonText: 'Entendido',
+    });
+    return;
+  }
+
+  try {
+    const response = await axios.get(`https://calidad-yesentregas-api.yes.com.sv/img/${codCliente}.jpg`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      responseType: 'blob' // Para manejar imágenes
+    });
+
+    const url = URL.createObjectURL(response.data);
+    imageUrl.value = url;
+    displayImageDialog.value = true;
+  } catch (error) {
+    console.error('Error al obtener la imagen:', error);
+    showAlert({
+      title: 'Error',
+      text: 'Hubo un problema al obtener la imagen.',
+      icon: 'error',
+      confirmButtonText: 'Entendido',
+    });
+  }
+};
+
 onMounted(() => {
   authStore.loadSession();
   cargarRutas();
@@ -306,23 +344,37 @@ onMounted(() => {
           </IconField>
         </div>
       </template>
-      <Column field="json_accion.fecha-hora" header="Fecha y Hora" sortable style="width: 100px;"></Column>
+      <Column field="json_accion.fecha-hora" header="Fecha y hora" sortable style="width: 100px;"></Column>
       <Column field="json_accion.Accion" header="Acción" sortable style="width: 100px;"></Column>
-      <Column field="json_accion.kunnag" header="Cód. Cliente" sortable style="width: 100px;"></Column>
-      <Column field="json_accion.Username" header="Usuario" sortable style="width: 100px;"></Column>
+      <Column field="json_accion.kunnag" header="Doc. Sap" sortable style="width: 100px;"></Column>
+      <!-- <Column field="json_accion.Username" header="Usuario" sortable style="width: 100px;"></Column> -->
       <Column field="json_accion.vbeln" header="Número de Factura" sortable style="width: 100px;"></Column>
-      <Column header="Georeferencia del entregador y el cliente" style="width: 100px;">
+      <Column header="Ver en mapa" style="width: 100px;">
         <template #body="slotProps">
           <Button icon="pi pi-map" @click="showMapDialog(slotProps.data)" />
         </template>
       </Column>
-      <Column field="json_accion.nota_aclaratoria" header="Diferencia" sortable style="width: 150px;"></Column>
+      <Column field="json_accion.nota_aclaratoria" header="Distancia" sortable style="width: 150px;"></Column>
+      <Column field="json_accion.tiempo de traslado" header="Dur. traslado" sortable style="width: 150px;"></Column>
+      <Column field="json_accion.hora de visita" header="Hora de llegada" sortable style="width: 150px;"></Column>
+      <Column field="json_accion.tiempo de visita" header="Dur. visita" sortable style="width: 150px;"></Column>
+      <Column header="Img Local" style="width: 150px;">
+        <template #body="slotProps">
+          <Button icon="pi pi-image" @click="showImageDialog(slotProps.data.json_accion.kunnag)" />
+        </template>
+      </Column>
     </DataTable>
 
     <!-- Dialogo para el mapa -->
     <Dialog header="Mapa de Referencia" v-model:visible="displayMapDialog" width="100%" :style="{ width: '90vw', maxWidth: '1200px' }"
     :breakpoints="{ '960px': '95vw', '640px': '100vw' }" modal>
       <div id="map" style="height:70vh; width:100%;"></div>
+    </Dialog>
+
+    <!-- Dialogo para la imagen -->
+    <Dialog header="Imagen del Cliente" v-model:visible="displayImageDialog" width="50%" :style="{ width: '50vw', maxWidth: '600px' }"
+    :breakpoints="{ '960px': '95vw', '640px': '100vw' }" modal>
+      <img :src="imageUrl" alt="Imagen del Cliente" style="width: 100%; height: auto;" />
     </Dialog>
   </div>
 </template>
@@ -331,5 +383,4 @@ onMounted(() => {
 .card {
   padding: 1rem;
 }
-
 </style>
