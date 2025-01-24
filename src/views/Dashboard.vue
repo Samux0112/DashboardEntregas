@@ -86,8 +86,8 @@ const obtenerOperacionesRuta = async () => {
                         numero = ++entregaCount;
                     }
                     return {
-                        lat: parseFloat(log.json_accion.latitud),
-                        lng: parseFloat(log.json_accion.longitud),
+                        lat: parseFloat(log.json_accion.latitudEntregador),
+                        lng: parseFloat(log.json_accion.longitudEntregador),
                         tipo: tipo, // Tipo de acción con número de entrega si aplica
                         tipoSinNumero: tipoSinNumero, // Tipo de acción sin número de entrega
                         cliente: log.json_accion.kunnag, // Información del cliente

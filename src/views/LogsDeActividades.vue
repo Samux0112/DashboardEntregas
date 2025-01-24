@@ -114,13 +114,32 @@ const obtenerLogs = async () => {
   }
 };
 
+// Función para filtrar los logs y mantener solo el primer "Inicio de sesión" de cada fecha
+const filtrarPrimerLogPorFecha = (logs) => {
+  const firstLogs = {};
+  logs.forEach(log => {
+    if (log["json_accion"].Accion === 'Inicio de sesión') {
+      const fecha = log["json_accion"]["fecha-hora"].split(" ")[0];
+      if (!firstLogs[fecha]) {
+        firstLogs[fecha] = log;
+      }
+    }
+  });
+  return Object.values(firstLogs);
+};
+
 // Función para filtrar los logs en base a las acciones seleccionadas
 const filtrarLogs = () => {
-  if (selectedActions.value.includes('Todos los logs')) {
-    filteredLogs.value = logs.value;
-  } else {
-    filteredLogs.value = logs.value.filter(log => selectedActions.value.includes(log.json_accion.Accion));
+  let logsFiltrados = logs.value;
+  if (!selectedActions.value.includes('Todos los logs')) {
+    logsFiltrados = logsFiltrados.filter(log => selectedActions.value.includes(log.json_accion.Accion));
   }
+
+  // Obtener solo el primer "Inicio de sesión" de cada fecha
+  const primerInicioSesion = filtrarPrimerLogPorFecha(logsFiltrados);
+
+  // Combinar ambos resultados
+  filteredLogs.value = [...primerInicioSesion, ...logsFiltrados.filter(log => log.json_accion.Accion !== 'Inicio de sesión')];
 };
 
 watch([selectedActions], filtrarLogs);
