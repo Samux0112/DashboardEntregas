@@ -116,29 +116,34 @@ const obtenerOperacionesRuta = async () => {
 
         if (response.data) {
             let entregaCount = 0;
-            operaciones.value = response.data
+            const logs = response.data
                 .filter(log => 
                     ["Inicio de sesión", "Entrega realizada (parcial)","Entrega realizada (entregado)", "Entrega realizada (no_entregado)", "Terminar día", "Cambio de ubicación"].includes(log.json_accion.Accion)
-                )
-                .map(log => {
-                    let tipo = log.json_accion.Accion;
-                    let tipoSinNumero = tipo;
-                    let numero = null;
-                    if (["Entrega realizada (parcial)", "Entrega realizada (entregado)", "Entrega realizada (no_entregado)"].includes(tipo)) {
-                        numero = ++entregaCount;
-                    }
-                    return {
-                        lat: parseFloat(log.json_accion.latitudEntregador),
-                        lng: parseFloat(log.json_accion.longitudEntregador),
-                        tipo: tipo, // Tipo de acción con número de entrega si aplica
-                        tipoSinNumero: tipoSinNumero, // Tipo de acción sin número de entrega
-                        cliente: log.json_accion.kunnag, // Información del cliente
-                        fechaHora: log.json_accion['fecha-hora'],
-                        usuario: log.json_accion.Username, // Usuario
-                        vbeln: log.json_accion.vbeln, // Número de entrega
-                        numero: numero // Número de entrega (solo para entregas)
-                    };
-                });
+                );
+
+            // Filtrar solo el primer "Inicio de sesión" de cada fecha
+            const firstLoginLogs = filtrarPrimerLogPorFecha(logs);
+
+            // Combinar y ordenar los logs
+            operaciones.value = [...firstLoginLogs, ...logs.filter(log => log.json_accion.Accion !== 'Inicio de sesión')].map(log => {
+                let tipo = log.json_accion.Accion;
+                let tipoSinNumero = tipo;
+                let numero = null;
+                if (["Entrega realizada (parcial)", "Entrega realizada (entregado)", "Entrega realizada (no_entregado)"].includes(tipo)) {
+                    numero = ++entregaCount;
+                }
+                return {
+                    lat: parseFloat(log.json_accion.latitudEntregador),
+                    lng: parseFloat(log.json_accion.longitudEntregador),
+                    tipo: tipo, // Tipo de acción con número de entrega si aplica
+                    tipoSinNumero: tipoSinNumero, // Tipo de acción sin número de entrega
+                    cliente: log.json_accion.kunnag, // Información del cliente
+                    fechaHora: log.json_accion['fecha-hora'],
+                    usuario: log.json_accion.Username, // Usuario
+                    vbeln: log.json_accion.vbeln, // Número de entrega
+                    numero: numero // Número de entrega (solo para entregas)
+                };
+            });
 
             console.log('Operaciones obtenidas:', operaciones.value);
         } else {
@@ -158,6 +163,20 @@ const obtenerOperacionesRuta = async () => {
             confirmButtonText: 'Entendido',
         });
     }
+};
+
+// Función para filtrar solo el primer "Inicio de sesión" de cada fecha
+const filtrarPrimerLogPorFecha = (logs) => {
+    const firstLogs = {};
+    logs.forEach(log => {
+        if (log["json_accion"].Accion === 'Inicio de sesión') {
+            const fecha = log["json_accion"]["fecha-hora"].split(" ")[0];
+            if (!firstLogs[fecha]) {
+                firstLogs[fecha] = log;
+            }
+        }
+    });
+    return Object.values(firstLogs);
 };
 
 // Actualizar la fecha y hora cada segundo

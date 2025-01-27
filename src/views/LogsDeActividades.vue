@@ -321,6 +321,17 @@ const showImageDialog = async (codCliente) => {
   }
 };
 
+// Función para determinar si se debe mostrar el botón de mapa
+const shouldShowMapButton = (log) => {
+  const accion = log.json_accion.Accion;
+  const tieneNotaAclaratoria = log.json_accion.nota_aclaratoria;
+
+  return (
+    ["Entrega realizada (entregado)", "Entrega realizada (parcial)", "Entrega realizada (no_entregado)"].includes(accion)
+    && tieneNotaAclaratoria
+  );
+};
+
 onMounted(() => {
   authStore.loadSession();
   cargarRutas();
@@ -428,7 +439,11 @@ onMounted(() => {
       <Column field="json_accion.vbeln" header="Número de Factura" sortable style="width: 100px;"></Column>
       <Column header="Ver en mapa" style="width: 100px;">
         <template #body="slotProps">
-          <Button icon="pi pi-map" @click="showMapDialog(slotProps.data)" />
+          <Button 
+            v-if="shouldShowMapButton(slotProps.data)" 
+            icon="pi pi-map" 
+            @click="showMapDialog(slotProps.data)" 
+          />
         </template>
       </Column>
       <Column field="json_accion.nota_aclaratoria" header="Distancia" sortable style="width: 150px;"></Column>
@@ -451,7 +466,7 @@ onMounted(() => {
     <!-- Dialogo para la imagen -->
     <Dialog header="Imagen del Cliente" v-model:visible="displayImageDialog" width="50%" :style="{ width: '50vw', maxWidth: '600px' }"
     :breakpoints="{ '960px': '95vw', '640px': '100vw' }" modal>
-    <img :src="imageUrl" alt="Imagen del Cliente" style="width: 100%; height: auto;" />
+      <img :src="imageUrl" alt="Imagen del Cliente" style="width: 100%; height: auto;" />
     </Dialog>
   </div>
 </template>
