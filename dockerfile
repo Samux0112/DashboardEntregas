@@ -6,7 +6,7 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-# Production Stage
+# Production Stage 1
 FROM node:current-alpine
 WORKDIR /app
 COPY --from=build /app .
