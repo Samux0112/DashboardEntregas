@@ -49,6 +49,63 @@ const cargarRutas = () => {
   }
 };
 
+// Función para guardar valor en localStorage
+const guardarValorEnLocalStorage = (clave, valor) => {
+  localStorage.setItem(clave, JSON.stringify(valor));
+};
+
+// Observar cambios en selectedRuta, startDate, endDate y selectedActions
+watch(selectedRuta, (nuevoValor) => {
+  guardarValorEnLocalStorage('selectedRuta', nuevoValor);
+});
+
+watch(startDate, (nuevoValor) => {
+  guardarValorEnLocalStorage('startDate', nuevoValor);
+});
+
+watch(endDate, (nuevoValor) => {
+  guardarValorEnLocalStorage('endDate', nuevoValor);
+});
+
+watch(selectedActions, (nuevoValor) => {
+  guardarValorEnLocalStorage('selectedActions', nuevoValor);
+});
+
+// Observar cambios en logs para guardarlos en localStorage
+watch(logs, (nuevoValor) => {
+  guardarValorEnLocalStorage('logs', nuevoValor);
+});
+
+// Función para cargar los valores desde localStorage
+const cargarValoresDesdeLocalStorage = () => {
+  const rutaGuardada = localStorage.getItem('selectedRuta');
+  const fechaInicioGuardada = localStorage.getItem('startDate');
+  const fechaFinGuardada = localStorage.getItem('endDate');
+  const accionesGuardadas = localStorage.getItem('selectedActions');
+  const logsGuardados = localStorage.getItem('logs');
+
+  if (rutaGuardada) {
+    selectedRuta.value = JSON.parse(rutaGuardada);
+  }
+
+  if (fechaInicioGuardada) {
+    startDate.value = new Date(JSON.parse(fechaInicioGuardada));
+  }
+
+  if (fechaFinGuardada) {
+    endDate.value = new Date(JSON.parse(fechaFinGuardada));
+  }
+
+  if (accionesGuardadas) {
+    selectedActions.value = JSON.parse(accionesGuardadas);
+  }
+
+  if (logsGuardados) {
+    logs.value = JSON.parse(logsGuardados);
+    filtrarLogs(); // Filtrar los logs después de cargarlos
+  }
+};
+
 // Función para formatear las fechas en formato DD-MM-YYYY
 const formatearFecha = (fecha) => {
   const dia = String(fecha.getDate()).padStart(2, '0');
@@ -267,6 +324,7 @@ const showImageDialog = async (codCliente) => {
 onMounted(() => {
   authStore.loadSession();
   cargarRutas();
+  cargarValoresDesdeLocalStorage(); // Cargar los valores seleccionados desde localStorage al montar el componente
 });
 </script>
 
@@ -393,7 +451,7 @@ onMounted(() => {
     <!-- Dialogo para la imagen -->
     <Dialog header="Imagen del Cliente" v-model:visible="displayImageDialog" width="50%" :style="{ width: '50vw', maxWidth: '600px' }"
     :breakpoints="{ '960px': '95vw', '640px': '100vw' }" modal>
-      <img :src="imageUrl" alt="Imagen del Cliente" style="width: 100%; height: auto;" />
+    <img :src="imageUrl" alt="Imagen del Cliente" style="width: 100%; height: auto;" />
     </Dialog>
   </div>
 </template>
