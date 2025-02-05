@@ -26,6 +26,7 @@ watch(password, (newValue) => {
   }
 });
 
+
 // Función para manejar el inicio de sesión
 const handleLogin = async () => {
   if (!username.value || !password.value) {
@@ -35,7 +36,17 @@ const handleLogin = async () => {
 
   try {
     await authStore.login(username.value, password.value); // Llamamos la acción login
-    router.push("/dashboard"); // Redirige al dashboard si el login es exitoso
+    
+    // Verificar si el usuario está autenticado
+    if (authStore.isAuthenticated()) {
+      router.push("/dashboard"); // Redirige al dashboard si el login es exitoso
+    } else {
+      showAlert(
+        "Error",
+        "Inicio de sesión fallido, por favor verifica tus credenciales",
+        "error"
+      );
+    }
   } catch (error) {
     console.error("Error en el inicio de sesión:", error);
     showAlert(
