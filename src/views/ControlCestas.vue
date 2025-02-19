@@ -6,6 +6,7 @@ import { useLayout } from "@/layout/composables/layout";
 import { useRouter } from "vue-router";
 import { useToast } from "primevue/usetoast";
 import { FilterMatchMode } from "@primevue/core/api";
+import { DataTable } from "primevue";
 
 // Asegúrate de que estas funciones estén disponibles desde el composable useLayout
 const { showAlert, closeAlert } = useLayout();
@@ -21,7 +22,6 @@ const clientesFiltrados = ref([]);
 const searchTerm = ref("");
 const selectedRuta = ref("");
 const startDate = ref(new Date());
-const endDate = ref(new Date());
 
 const showEntradaDialog = ref(false);
 const showSalidaDialog = ref(false);
@@ -42,51 +42,6 @@ const cargarRutas = () => {
   } else {
     rutas.value = [];
   }
-};
-
-const obtenerInventario = async (kunnr, tipoMov, vbeln = "") => {
-  try {
-    const response = await axios.post(
-      "https://calidad-yesentregas-api.yes.com.sv/control-cestas/",
-      {
-        kunnr: kunnr,
-        vbeln: vbeln,
-        tipo_mov: tipoMov,
-        start_date: startDate.value.toISOString().split("T")[0],
-        end_date: endDate.value.toISOString().split("T")[0],
-      }
-    );
-
-    console.log("Response data:", response.data);
-
-    return response.data.filter(
-      (inventario) =>
-        inventario.kunnr === kunnr && inventario.tipo_mov === tipoMov
-    );
-  } catch (error) {
-    console.error("Error al obtener el inventario:", error);
-    showAlert({
-      title: "Error",
-      text: "Hubo un problema al obtener el inventario.",
-      icon: "error",
-      confirmButtonText: "Entendido",
-    });
-    return [];
-  }
-};
-
-const procesarInventario = (inventarios) => {
-  const resultado = {
-    cantidad: 0,
-    cantidad_palets: 0,
-  };
-
-  inventarios.forEach((registro) => {
-    resultado.cantidad += registro.cantidad;
-    resultado.cantidad_palets += registro.cantidad_palets;
-  });
-
-  return resultado;
 };
 
 const cargarClientes = async () => {
@@ -110,38 +65,16 @@ const cargarClientes = async () => {
     });
 
     const responseClientes = await axios.post(
-      "https://calidad-yesentregas-api.yes.com.sv/clientes/",
+      "https://calidad-yesentregas-api.yes.com.sv/control-cestas-dash/",
       {
         sortl: selectedRuta.value,
+        fecha: startDate.value.toISOString().split("T")[0],
       }
     );
 
     if (responseClientes.data && responseClientes.data.length > 0) {
       clientes.value = responseClientes.data;
-
-      for (const cliente of clientes.value) {
-        const responseVBELN = await axios.post(
-          "https://calidad-yesentregas-api.yes.com.sv/entregas/",
-          {
-            bzirk: selectedRuta.value,
-          }
-        );
-
-        if (responseVBELN.data) {
-          const uniqueVBELN = [
-            ...new Set(
-              responseVBELN.data
-                .filter((entrega) => entrega.KUNAG === cliente.KUNNR)
-                .map((entrega) => entrega.VBELN)
-            ),
-          ];
-          cliente.VBELN = uniqueVBELN.map((vbeln) => ({ VBELN: vbeln }));
-        } else {
-          cliente.VBELN = [];
-        }
-      }
-
-      filtrarClientes();
+      clientesFiltrados.value = responseClientes.data;
       closeAlert(); // Cerrar el alert de cargando
       showAlert({
         title: "Éxito",
@@ -172,70 +105,21 @@ const cargarClientes = async () => {
   }
 };
 
-const cargarInventarioEntradas = async () => {
-  try {
-    for (const cliente of clientes.value) {
-      const entradas = await obtenerInventario(cliente.KUNNR, "E");
-      const inventarioEntradas = procesarInventario(entradas);
-      cliente.cantidad_entradas = inventarioEntradas.cantidad;
-      cliente.cantidad_palets_entradas = inventarioEntradas.cantidad_palets;
-    }
-
-    filtrarClientes();
-  } catch (error) {
-    console.error("Error al cargar el inventario de entradas:", error);
-    showAlert({
-      title: "Error",
-      text: "Hubo un problema al cargar el inventario de entradas.",
-      icon: "error",
-      confirmButtonText: "Entendido",
-    });
-  }
-};
-
-const cargarInventarioSalidas = async () => {
-  try {
-    for (const cliente of clientes.value) {
-      const salidas = await obtenerInventario(cliente.KUNNR, "S");
-      const inventarioSalidas = procesarInventario(salidas);
-      cliente.cantidad_salidas = inventarioSalidas.cantidad;
-      cliente.cantidad_palets_salidas = inventarioSalidas.cantidad_palets;
-
-      for (const vbelnEntry of cliente.VBELN) {
-        const vbelnSalidas = await obtenerInventario(
-          cliente.KUNNR,
-          "S",
-          vbelnEntry.VBELN
-        );
-        const inventarioVBELNSalidas = procesarInventario(vbelnSalidas);
-        vbelnEntry.cantidad_salidas = inventarioVBELNSalidas.cantidad;
-        vbelnEntry.cantidad_palets_salidas =
-          inventarioVBELNSalidas.cantidad_palets;
-      }
-    }
-
-    filtrarClientes();
-  } catch (error) {
-    console.error("Error al cargar el inventario de salidas:", error);
-    showAlert({
-      title: "Error",
-      text: "Hubo un problema al cargar el inventario de salidas.",
-      icon: "error",
-      confirmButtonText: "Entendido",
-    });
-  }
-};
-
 const filtrarClientes = () => {
   clientesFiltrados.value = clientes.value.filter((cliente) => {
     const nombreCoincide =
-      cliente.NAME1.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-      cliente.NAME2.toLowerCase().includes(searchTerm.value.toLowerCase());
+      (cliente.name1?.toLowerCase().includes(searchTerm.value.toLowerCase()) || false) ||
+      (cliente.name2?.toLowerCase().includes(searchTerm.value.toLowerCase()) || false);
     return nombreCoincide;
   });
 };
 
-watch([searchTerm], filtrarClientes);
+onMounted(() => {
+  authStore.loadSession();
+  cargarRutas();
+});
+
+watch(searchTerm, filtrarClientes);
 
 const dt = ref();
 const filters = ref({
@@ -258,107 +142,10 @@ const abrirDialogoSalida = (cliente, vbeln) => {
   showSalidaDialog.value = true;
 };
 
-const insertarEntrada = async () => {
-  try {
-    if (!clienteSeleccionado.value) {
-      throw new Error("Cliente no seleccionado");
-    }
-
-    const data = {
-      kunnr: clienteSeleccionado.value.KUNNR,
-      vbeln: "", // vbeln vacío para entradas
-      tipo_mov: "E", // Siempre "Entrada"
-      cantidad: cantidadEntradas.value,
-      fecha: new Date().toISOString().split("T")[0], // Fecha en formato YYYY-MM-DD
-      usuario: username.value,
-      cantidad_palets: cantidadPaletsEntradas.value,
-    };
-
-    await axios.post(
-      "https://calidad-yesentregas-api.yes.com.sv/control-cestas/insert/",
-      data,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    showAlert({
-      title: "Entrada insertada",
-      text: "La entrada ha sido insertada correctamente.",
-      icon: "success",
-      confirmButtonText: "Entendido",
-    });
-
-    // Cerrar el diálogo
-    showEntradaDialog.value = false;
-  } catch (error) {
-    console.error("Error al insertar la entrada:", error);
-    showAlert({
-      title: "Error",
-      text: "Hubo un problema al insertar la entrada.",
-      icon: "error",
-      confirmButtonText: "Entendido",
-    });
-  }
-};
-
-const insertarSalida = async () => {
-  try {
-    if (!clienteSeleccionado.value || !vbelnSeleccionado.value) {
-      throw new Error("Cliente o VBELN no seleccionado");
-    }
-
-    const data = {
-      kunnr: clienteSeleccionado.value.KUNNR,
-      vbeln: vbelnSeleccionado.value,
-      tipo_mov: "S", // Siempre "Salida"
-      cantidad: cantidadSalidas.value,
-      fecha: new Date().toISOString().split("T")[0],
-      usuario: username.value,
-      cantidad_palets: cantidadPaletsSalidas.value,
-    };
-
-    await axios.post(
-      "https://calidad-yesentregas-api.yes.com.sv/control-cestas/insert/",
-      data,
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    showAlert({
-      title: "Salida insertada",
-      text: "La salida ha sido insertada correctamente.",
-      icon: "success",
-      confirmButtonText: "Entendido",
-    });
-
-    // Cerrar el diálogo
-    showSalidaDialog.value = false;
-  } catch (error) {
-    console.error("Error al insertar la salida:", error);
-    showAlert({
-      title: "Error",
-      text: "Hubo un problema al insertar la salida.",
-      icon: "error",
-      confirmButtonText: "Entendido",
-    });
-  }
-};
-
 const hideDialog = () => {
   showEntradaDialog.value = false;
   showSalidaDialog.value = false;
 };
-
-onMounted(() => {
-  authStore.loadSession();
-  cargarRutas();
-});
 </script>
 
 <template>
@@ -366,28 +153,20 @@ onMounted(() => {
     <Toolbar class="mb-6">
       <template #start>
         <div>
-          <label for="startDate">Seleccione una Ruta</label>
+          <label for="ruta">Seleccione una Ruta</label>
           <Select
             v-model="selectedRuta"
             :options="rutas"
             placeholder="Rutas"
-            @change="cargarClientes"
             :disabled="loading"
           />
         </div>
         <div class="ml-2">
-          <label for="startDate">Fecha de Inicio</label>
-          <Calendar id="startDate" v-model="startDate" dateFormat="yy-mm-dd" />
+          <label for="fecha">Fecha</label>
+          <Calendar id="fecha" v-model="startDate" dateFormat="yy-mm-dd" />
         </div>
         <div class="ml-2">
-          <label for="endDate">Fecha de Fin</label>
-          <Calendar id="endDate" v-model="endDate" dateFormat="yy-mm-dd" />
-        </div>
-        <div class="ml-2">
-          <Button label="Cargar Entradas" @click="cargarInventarioEntradas" />
-        </div>
-        <div class="ml-2">
-          <Button label="Cargar Salidas" @click="cargarInventarioSalidas" />
+          <Button label="Buscar" @click="cargarClientes" />
         </div>
         <div class="ml-2">
           <Button
@@ -405,7 +184,7 @@ onMounted(() => {
       ref="dt"
       v-model:expandedRows="expandedRows"
       :value="clientesFiltrados"
-      dataKey="KUNNR"
+      dataKey="kunnr"
       :paginator="true"
       :rows="10"
       :filters="filters"
@@ -427,63 +206,16 @@ onMounted(() => {
           </IconField>
         </div>
       </template>
+      <Column field="kunnr" header="Kunnr" sortable></Column>
+      <Column field="name1" header="Razon social" sortable></Column>
+      <Column field="name2" header="Nombre" sortable></Column>
+      <Column field="sortl" header="Ruta" sortable></Column>
+      <Column field="stras" header="Dirección" sortable></Column>
+      <Column field="saldo_inicial" header="Saldo inicial" sortable></Column>
+      <Column field="entradas" header="Entradas" sortable></Column>
+      <Column field="salidas" header="Salidas" sortable></Column>
+      <Column field="saldo_final" header="Saldo final" sortable></Column>
 
-      <Column expander style="width: 3rem"></Column>
-      <Column field="KUNNR" header="Kunnr" sortable></Column>
-      <Column field="NAME1" header="Razon social" sortable></Column>
-      <Column field="NAME2" header="Nombre" sortable></Column>
-      <Column field="STRAS" header="Dirección" sortable></Column>
-      <!-- Muestra solo entradas -->
-      <Column
-        field="cantidad_entradas"
-        header="# de jabas (Entradas)"
-        sortable
-      ></Column>
-      <Column
-        field="cantidad_palets_entradas"
-        header="# de palets (Entradas)"
-        sortable
-      ></Column>
-      <Column header="Acciones">
-        <template #body="slotProps">
-          <Button
-            label="Insertar Entrada"
-            @click="() => abrirDialogoEntrada(slotProps.data)"
-          />
-        </template>
-      </Column>
-      <template #expansion="slotProps">
-        <div class="p-4">
-          <h5>Facturas del cliente: {{ slotProps.data.NAME1 }}</h5>
-          <DataTable :value="slotProps.data.VBELN">
-            <Column field="VBELN" header="VBELN" sortable></Column>
-            <Column
-              field="cantidad_salidas"
-              header="Salidas de jabas"
-              sortable
-            ></Column>
-            <Column
-              field="cantidad_palets_salidas"
-              header="Salidas de palets"
-              sortable
-            ></Column>
-            <Column header="Acciones">
-              <template #body="vbelnSlotProps">
-                <Button
-                  label="Insertar Salida"
-                  @click="
-                    () =>
-                      abrirDialogoSalida(
-                        slotProps.data,
-                        vbelnSlotProps.data.VBELN
-                      )
-                  "
-                />
-              </template>
-            </Column>
-          </DataTable>
-        </div>
-      </template>
     </DataTable>
 
     <!-- Dialogo para Insertar Entrada -->

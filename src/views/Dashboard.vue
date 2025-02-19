@@ -84,12 +84,12 @@ const cargarValoresDesdeLocalStorage = () => {
 // Función para obtener las operaciones de una ruta específica
 const obtenerOperacionesRuta = async () => {
     try {
-        if (!dropdownValue.value || !calendarValue.value || !filterValue.value) {
+        if (!calendarValue.value || !dropdownValue.value || !filterValue.value || dropdownValue.value === '') {
             showAlert({
                 title: 'Campos incompletos',
                 text: 'Por favor, selecciona la ruta, fecha y filtro antes de buscar.',
                 icon: 'warning',
-                confirmButtonText: 'Entendido',
+                confirmButtonText: 'Entendido'
             });
             return;
         }
@@ -184,7 +184,6 @@ onMounted(() => {
     actualizarFechaHora();
     setInterval(actualizarFechaHora, 1000);
     cargarValoresDesdeLocalStorage(); // Cargar las rutas y valores seleccionados desde localStorage al montar el componente
-    obtenerOperacionesRuta(); // Intentar obtener las operaciones al montar el componente
 });
 </script>
 
