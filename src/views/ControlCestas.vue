@@ -113,8 +113,8 @@ const insertarMovimiento = async (cliente, tipo_mov, cantidad, cantidadPalets) =
       tipo_mov: tipo_mov,
       fecha: startDate.value.toISOString().split("T")[0],
       usuario: selectedRuta.value, // Assuming `selectedRuta` is the user
-      cantidad: cantidad,
-      cantidad_palets: cantidadPalets,
+      cantidad: contType.value === "CESTAS" ? cantidad : 0,
+      cantidad_palets: contType.value === "PALETS" ? cantidadPalets : 0,
     };
 
     await axios.post(
@@ -141,8 +141,10 @@ const insertarMovimiento = async (cliente, tipo_mov, cantidad, cantidadPalets) =
   }
 };
 
-const handleKeyPress = (event, cliente, tipo_mov, cantidad, cantidadPalets) => {
+const handleKeyPress = (event, cliente, tipo_mov) => {
   if (event.key === "Enter") {
+    const cantidad = contType.value === "CESTAS" ? event.target.value : 0;
+    const cantidadPalets = contType.value === "PALETS" ? event.target.value : 0;
     insertarMovimiento(cliente, tipo_mov, cantidad, cantidadPalets);
   }
 };
@@ -246,7 +248,7 @@ const exportCSV = () => {
           <InputText
             v-model="slotProps.data.entradas"
             class="small-input"
-            @keypress="handleKeyPress($event, slotProps.data, 'E', slotProps.data.entradas, 0)"
+            @keypress="handleKeyPress($event, slotProps.data, 'E')"
           />
         </template>
       </Column>
@@ -259,7 +261,7 @@ const exportCSV = () => {
           <InputText
             v-model="slotProps.data.salidas"
             class="small-input"
-            @keypress="handleKeyPress($event, slotProps.data, 'S', 0, slotProps.data.salidas)"
+            @keypress="handleKeyPress($event, slotProps.data, 'S')"
           />
         </template>
       </Column>
