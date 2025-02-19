@@ -22,16 +22,7 @@ const clientesFiltrados = ref([]);
 const searchTerm = ref("");
 const selectedRuta = ref("");
 const startDate = ref(new Date());
-
-const showEntradaDialog = ref(false);
-const showSalidaDialog = ref(false);
-const clienteSeleccionado = ref(null);
-const vbelnSeleccionado = ref(null);
-
-const cantidadEntradas = ref(0);
-const cantidadPaletsEntradas = ref(0);
-const cantidadSalidas = ref(0);
-const cantidadPaletsSalidas = ref(0);
+const contType = ref("CESTAS"); // Valor por defecto para el radio button
 
 const loading = ref(false); // Bandera de carga
 
@@ -69,6 +60,7 @@ const cargarClientes = async () => {
       {
         sortl: selectedRuta.value,
         fecha: startDate.value.toISOString().split("T")[0],
+        cont: contType.value,
       }
     );
 
@@ -114,6 +106,47 @@ const filtrarClientes = () => {
   });
 };
 
+const insertarMovimiento = async (cliente, tipo_mov, cantidad, cantidadPalets) => {
+  try {
+    const payload = {
+      kunnr: cliente.kunnr,
+      tipo_mov: tipo_mov,
+      fecha: startDate.value.toISOString().split("T")[0],
+      usuario: selectedRuta.value, // Assuming `selectedRuta` is the user
+      cantidad: cantidad,
+      cantidad_palets: cantidadPalets,
+    };
+
+    await axios.post(
+      "https://calidad-yesentregas-api.yes.com.sv/control-cestas/insert/",
+      payload
+    );
+
+    showAlert({
+      title: "Éxito",
+      text: "Movimiento insertado correctamente.",
+      icon: "success",
+      confirmButtonText: "Entendido",
+    });
+
+    cargarClientes(); // Recargar los clientes
+  } catch (error) {
+    console.error("Error al insertar el movimiento:", error);
+    showAlert({
+      title: "Error",
+      text: "Hubo un problema al insertar el movimiento.",
+      icon: "error",
+      confirmButtonText: "Entendido",
+    });
+  }
+};
+
+const handleKeyPress = (event, cliente, tipo_mov, cantidad, cantidadPalets) => {
+  if (event.key === "Enter") {
+    insertarMovimiento(cliente, tipo_mov, cantidad, cantidadPalets);
+  }
+};
+
 onMounted(() => {
   authStore.loadSession();
   cargarRutas();
@@ -128,23 +161,6 @@ const filters = ref({
 
 const exportCSV = () => {
   dt.value.exportCSV();
-};
-
-const abrirDialogoEntrada = (cliente) => {
-  clienteSeleccionado.value = cliente;
-  vbelnSeleccionado.value = "";
-  showEntradaDialog.value = true;
-};
-
-const abrirDialogoSalida = (cliente, vbeln) => {
-  clienteSeleccionado.value = cliente;
-  vbelnSeleccionado.value = vbeln;
-  showSalidaDialog.value = true;
-};
-
-const hideDialog = () => {
-  showEntradaDialog.value = false;
-  showSalidaDialog.value = false;
 };
 </script>
 
@@ -164,6 +180,15 @@ const hideDialog = () => {
         <div class="ml-2">
           <label for="fecha">Fecha</label>
           <Calendar id="fecha" v-model="startDate" dateFormat="yy-mm-dd" />
+        </div>
+        <div class="ml-2">
+          <label for="cont">Contenedor</label>
+          <div class="flex align-items-center">
+            <RadioButton v-model="contType" inputId="cestas" value="CESTAS" />
+            <label for="cestas" class="ml-2">Cestas</label>
+            <RadioButton v-model="contType" inputId="palets" value="PALETS" class="ml-2" />
+            <label for="palets" class="ml-2">Palets</label>
+          </div>
         </div>
         <div class="ml-2">
           <Button label="Buscar" @click="cargarClientes" />
@@ -212,93 +237,34 @@ const hideDialog = () => {
       <Column field="sortl" header="Ruta" sortable></Column>
       <Column field="stras" header="Dirección" sortable></Column>
       <Column field="saldo_inicial" header="Saldo inicial" sortable></Column>
-      <Column field="entradas" header="Entradas" sortable></Column>
-      <Column field="salidas" header="Salidas" sortable></Column>
+      <Column
+        field="entradas"
+        header="Entradas"
+        sortable
+      >
+        <template #body="slotProps">
+          <InputText
+            v-model="slotProps.data.entradas"
+            class="small-input"
+            @keypress="handleKeyPress($event, slotProps.data, 'E', slotProps.data.entradas, 0)"
+          />
+        </template>
+      </Column>
+      <Column
+        field="salidas"
+        header="Salidas"
+        sortable
+      >
+        <template #body="slotProps">
+          <InputText
+            v-model="slotProps.data.salidas"
+            class="small-input"
+            @keypress="handleKeyPress($event, slotProps.data, 'S', 0, slotProps.data.salidas)"
+          />
+        </template>
+      </Column>
       <Column field="saldo_final" header="Saldo final" sortable></Column>
-
     </DataTable>
-
-    <!-- Dialogo para Insertar Entrada -->
-    <Dialog
-      v-model:visible="showEntradaDialog"
-      header="Insertar Entrada"
-      :modal="true"
-      class="p-fluid"
-      :closable="false"
-    >
-      <div class="field">
-        <label for="cantidad" class="mr-2">Cantidad Jabas</label>
-        <InputText
-          id="cantidad"
-          v-model="cantidadEntradas"
-          class="small-input"
-        />
-      </div>
-      <br />
-      <div class="field">
-        <label for="cantidad-palets" class="mr-1">Cantidad Palets</label>
-        <InputText
-          id="cantidad-palets"
-          v-model="cantidadPaletsEntradas"
-          class="small-input"
-        />
-      </div>
-      <template #footer>
-        <Button
-          label="Cancelar"
-          icon="pi pi-times"
-          class="p-button-text"
-          @click="hideDialog"
-        />
-        <Button
-          label="Insertar"
-          icon="pi pi-check"
-          class="p-button-text"
-          @click="insertarEntrada"
-        />
-      </template>
-    </Dialog>
-
-    <!-- Dialogo para Insertar Salida -->
-    <Dialog
-      v-model:visible="showSalidaDialog"
-      header="Insertar Salida"
-      :modal="true"
-      class="p-fluid"
-      :closable="false"
-    >
-      <div class="field">
-        <label for="cantidad-salida" class="mr-2">Cantidad Jabas</label>
-        <InputText
-          id="cantidad-salida"
-          v-model="cantidadSalidas"
-          class="small-input"
-        />
-      </div>
-      <br />
-      <div class="field">
-        <label for="cantidad-palets-salida" class="mr-1">Cantidad Palets</label>
-        <InputText
-          id="cantidad-palets-salida"
-          v-model="cantidadPaletsSalidas"
-          class="small-input"
-        />
-      </div>
-      <template #footer>
-        <Button
-          label="Cancelar"
-          icon="pi pi-times"
-          class="p-button-text"
-          @click="hideDialog"
-        />
-        <Button
-          label="Insertar"
-          icon="pi pi-check"
-          class="p-button-text"
-          @click="insertarSalida"
-        />
-      </template>
-    </Dialog>
   </div>
 </template>
 
@@ -307,6 +273,6 @@ const hideDialog = () => {
   padding: 1rem;
 }
 .small-input {
-  width: 50px;
+  width: 40px; /* Ajusta el tamaño según tus necesidades */
 }
 </style>
