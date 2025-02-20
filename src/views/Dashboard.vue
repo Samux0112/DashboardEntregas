@@ -192,12 +192,12 @@ onMounted(() => {
         <!-- Fila con inputs y botón -->
         <div class="flex items-center gap-x-4 mb-4">
             <div class="flex items-center gap-x-2">
-                <div class="font-semibold text-l">Ingresa la fecha:</div>
-                <DatePicker v-model="calendarValue" :showIcon="true" :showButtonBar="true" />
-            </div>
-            <div class="flex items-center gap-x-2">
                 <div class="font-semibold text-l">Ingresa la ruta:</div>
                 <Select v-model="dropdownValue" :options="rutas" placeholder="Selecciona la ruta" />
+            </div>
+            <div class="flex items-center gap-x-2">
+                <div class="font-semibold text-l">Ingresa la fecha:</div>
+                <DatePicker v-model="calendarValue" :showIcon="true" :showButtonBar="true" />
             </div>
             <div class="flex items-center gap-x-2">
                 <div class="font-semibold text-l">Filtrar por:</div>

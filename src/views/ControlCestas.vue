@@ -23,6 +23,7 @@ const searchTerm = ref("");
 const selectedRuta = ref("");
 const startDate = ref(new Date());
 const contType = ref("CESTAS"); // Valor por defecto para el radio button
+const fechaconsult = ref("Todos"); // Valor por defecto para el nuevo filtro
 
 const loading = ref(false); // Bandera de carga
 
@@ -66,14 +67,8 @@ const cargarClientes = async () => {
 
     if (responseClientes.data && responseClientes.data.length > 0) {
       clientes.value = responseClientes.data;
-      clientesFiltrados.value = responseClientes.data;
+      filtrarClientes(); // Filtrar los clientes después de cargarlos
       closeAlert(); // Cerrar el alert de cargando
-      showAlert({
-        title: "Éxito",
-        text: "Los clientes han sido cargados correctamente.",
-        icon: "success",
-        confirmButtonText: "Entendido",
-      });
     } else {
       closeAlert(); // Cerrar el alert de cargando
       showAlert({
@@ -98,12 +93,11 @@ const cargarClientes = async () => {
 };
 
 const filtrarClientes = () => {
-  clientesFiltrados.value = clientes.value.filter((cliente) => {
-    const nombreCoincide =
-      (cliente.name1?.toLowerCase().includes(searchTerm.value.toLowerCase()) || false) ||
-      (cliente.name2?.toLowerCase().includes(searchTerm.value.toLowerCase()) || false);
-    return nombreCoincide;
-  });
+  if (fechaconsult.value === 1) {
+    clientesFiltrados.value = clientes.value.filter((cliente) => cliente.fechaconsult === 1);
+  } else {
+    clientesFiltrados.value = clientes.value.filter((cliente) => cliente.fechaconsult !== 1);
+  }
 };
 
 const insertarMovimiento = async (cliente, tipo_mov, cantidad, cantidadPalets) => {
@@ -152,9 +146,10 @@ const handleKeyPress = (event, cliente, tipo_mov) => {
 onMounted(() => {
   authStore.loadSession();
   cargarRutas();
+  cargarClientes(); // Cargar los clientes al montar el componente
 });
 
-watch(searchTerm, filtrarClientes);
+watch([searchTerm, fechaconsult, contType, selectedRuta], cargarClientes); // Agregar selectedRuta al watch
 
 const dt = ref();
 const filters = ref({
@@ -184,7 +179,20 @@ const exportCSV = () => {
           <Calendar id="fecha" v-model="startDate" dateFormat="yy-mm-dd" />
         </div>
         <div class="ml-2">
-          <label for="cont">Contenedor</label>
+          <label for="fechaconsult">Filtro</label>
+          <Select
+            v-model="fechaconsult"
+            :options="[
+              { label: 'Todos', value: 'Todos' },
+              { label: 'Agendados', value: 1 },
+            ]"
+            placeholder="Seleccione filtro"
+            :disabled="loading"
+            optionLabel="label"
+            optionValue="value"
+          />
+        </div>
+        <div class="ml-2">
           <div class="flex align-items-center">
             <RadioButton v-model="contType" inputId="cestas" value="CESTAS" />
             <label for="cestas" class="ml-2">Cestas</label>
@@ -193,18 +201,8 @@ const exportCSV = () => {
           </div>
         </div>
         <div class="ml-2">
-          <Button label="Buscar" @click="cargarClientes" />
+          <Button label="Exportar en excel" icon="pi pi-upload" severity="secondary" @click="exportCSV($event)" />
         </div>
-        <div class="ml-2">
-          <Button
-            label="Exportar en excel"
-            icon="pi pi-upload"
-            severity="secondary"
-            @click="exportCSV($event)"
-          />
-        </div>
-      </template>
-      <template #end>
       </template>
     </Toolbar>
     <DataTable
@@ -226,10 +224,7 @@ const exportCSV = () => {
             <InputIcon>
               <i class="pi pi-search" />
             </InputIcon>
-            <InputText
-              v-model="searchTerm"
-              placeholder="Buscar por nombre..."
-            />
+            <InputText v-model="searchTerm" placeholder="Buscar por nombre..." />
           </IconField>
         </div>
       </template>
@@ -239,30 +234,14 @@ const exportCSV = () => {
       <Column field="sortl" header="Ruta" sortable></Column>
       <Column field="stras" header="Dirección" sortable></Column>
       <Column field="saldo_inicial" header="Saldo inicial" sortable></Column>
-      <Column
-        field="entradas"
-        header="Entradas"
-        sortable
-      >
+      <Column field="entradas" header="Entradas" sortable>
         <template #body="slotProps">
-          <InputText
-            v-model="slotProps.data.entradas"
-            class="small-input"
-            @keypress="handleKeyPress($event, slotProps.data, 'E')"
-          />
+          <InputText v-model="slotProps.data.entradas" class="small-input" @keypress="handleKeyPress($event, slotProps.data, 'E')" />
         </template>
       </Column>
-      <Column
-        field="salidas"
-        header="Salidas"
-        sortable
-      >
+      <Column field="salidas" header="Salidas" sortable>
         <template #body="slotProps">
-          <InputText
-            v-model="slotProps.data.salidas"
-            class="small-input"
-            @keypress="handleKeyPress($event, slotProps.data, 'S')"
-          />
+          <InputText v-model="slotProps.data.salidas" class="small-input" @keypress="handleKeyPress($event, slotProps.data, 'S')" />
         </template>
       </Column>
       <Column field="saldo_final" header="Saldo final" sortable></Column>
