@@ -38,7 +38,6 @@ const availableActions = [
   { label: 'Entrega realizada (entregado)', value: 'Entrega realizada (entregado)' },
   { label: 'Entrega realizada (parcial)', value: 'Entrega realizada (parcial)' },
   { label: 'Entrega realizada (no_entregado)', value: 'Entrega realizada (no_entregado)' },
-  { label: 'Todos los logs', value: 'Todos los logs' },
 ];
 
 const cargarRutas = () => {

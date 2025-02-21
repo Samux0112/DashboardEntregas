@@ -7,6 +7,8 @@ import { useRouter } from "vue-router";
 import { useToast } from "primevue/usetoast";
 import { FilterMatchMode } from "@primevue/core/api";
 import { DataTable } from "primevue";
+import Galleria from 'primevue/galleria';
+import Dialog from 'primevue/dialog';
 
 // Asegúrate de que estas funciones estén disponibles desde el composable useLayout
 const { showAlert, closeAlert } = useLayout();
@@ -26,6 +28,8 @@ const contType = ref("CESTAS"); // Valor por defecto para el radio button
 const fechaconsult = ref("Todos"); // Valor por defecto para el nuevo filtro
 
 const loading = ref(false); // Bandera de carga
+const displayGalleriaDialog = ref(false); // Variable para mostrar el diálogo del carrusel
+const images = ref([]); // Variable para almacenar las imágenes del carrusel
 
 const cargarRutas = () => {
   const rutasGuardadas = localStorage.getItem("rutas");
@@ -61,8 +65,9 @@ const cargarClientes = async () => {
         title: "Sin clientes",
         text: "No se encontraron clientes para la ruta seleccionada.",
         icon: "info",
-        confirmButtonText: "Entendido",
+        showConfirmButton: false,
       });
+      setTimeout(closeAlert, 1000); // Cerrar el mensaje después de 1 segundo
     }
   } catch (error) {
     console.error("Error al cargar los clientes:", error);
@@ -70,8 +75,9 @@ const cargarClientes = async () => {
       title: "Error",
       text: "Hubo un problema al cargar los clientes.",
       icon: "error",
-      confirmButtonText: "Entendido",
+      showConfirmButton: false,
     });
+    setTimeout(closeAlert, 1000); // Cerrar el mensaje después de 1 segundo
   } finally {
     loading.value = false; // Terminar carga
   }
@@ -108,8 +114,9 @@ const insertarMovimiento = async (cliente, tipo_mov, cantidad, cantidadPalets) =
       title: "Error",
       text: "Hubo un problema al insertar el movimiento.",
       icon: "error",
-      confirmButtonText: "Entendido",
+      showConfirmButton: false,
     });
+    setTimeout(closeAlert, 1000); // Cerrar el mensaje después de 1 segundo
   }
 };
 
@@ -118,6 +125,74 @@ const handleKeyPress = (event, cliente, tipo_mov) => {
     const cantidad = contType.value === "CESTAS" ? event.target.value : 0;
     const cantidadPalets = contType.value === "PALETS" ? event.target.value : 0;
     insertarMovimiento(cliente, tipo_mov, cantidad, cantidadPalets);
+  }
+};
+
+// Función para obtener las imágenes del carrusel
+const obtenerImagenesCarrusel = async (codCliente) => {
+  const token = localStorage.getItem('token');
+
+  if (!token) {
+    showAlert({
+      title: 'Error',
+      text: 'Token no disponible. Por favor, inicia sesión.',
+      icon: 'error',
+      showConfirmButton: false,
+    });
+    setTimeout(closeAlert, 1000); // Cerrar el mensaje después de 1 segundo
+    return;
+  }
+
+  try {
+    const selectedDate = startDate.value.toISOString().split("T")[0]; // Fecha seleccionada en formato YYYY-MM-DD
+    images.value = []; // Limpiar imágenes anteriores
+
+    for (let i = 1; i <= 2; i++) {
+      const url = `https://calidad-yesentregas-api.yes.com.sv/img/${codCliente}_${selectedDate}_${i}.jpg`;
+      try {
+        const response = await axios.get(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.status === 200) {
+          images.value.push({
+            itemImageSrc: url,
+            thumbnailImageSrc: url,
+            alt: `Imagen ${i}`
+          });
+        }
+      } catch (error) {
+        // Si hay un error 404, continuar con la siguiente imagen
+        if (error.response && error.response.status === 404) {
+          continue;
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    if (images.value.length > 0) {
+      displayGalleriaDialog.value = true;
+    } else {
+      showAlert({
+        title: 'Sin imágenes',
+        text: 'No se encontraron imágenes para el cliente seleccionado.',
+        icon: 'info',
+        showConfirmButton: false,
+      });
+      setTimeout(closeAlert, 1000); // Cerrar el mensaje después de 1 segundo
+    }
+  } catch (error) {
+    console.error('Error al obtener las imágenes del carrusel:', error);
+    showAlert({
+      title: 'Error',
+      text: 'Hubo un problema al obtener las imágenes del carrusel.',
+      icon: 'error',
+      showConfirmButton: false,
+    });
+    setTimeout(closeAlert, 1800); // Cerrar el mensaje después de 1 segundo
   }
 };
 
@@ -223,7 +298,24 @@ const exportCSV = () => {
         </template>
       </Column>
       <Column field="saldo_final" header="Saldo final" sortable></Column>
+      <Column header="Ver imagen" style="width: 100px;">
+        <template #body="slotProps">
+          <Button icon="pi pi-image" @click="obtenerImagenesCarrusel(slotProps.data.kunnr)" />
+        </template>
+      </Column>
     </DataTable>
+
+    <!-- Dialogo para el carrusel -->
+    <Dialog header="Imagen del Cliente" v-model:visible="displayGalleriaDialog" width="50%" :style="{ width: '50vw', maxWidth: '600px' }" :breakpoints="{ '960px': '95vw', '640px': '100vw' }" modal>
+      <Galleria :value="images" :responsiveOptions="[{breakpoint: '1024px', numVisible: 1}, {breakpoint: '768px', numVisible: 1}, {breakpoint: '560px', numVisible: 1}]" :numVisible="1" containerStyle="max-width: 100%">
+        <template #item="slotProps">
+          <img :src="slotProps.item.itemImageSrc" :alt="slotProps.item.alt" style="width: 100%" />
+        </template>
+        <template #thumbnail="slotProps">
+          <img :src="slotProps.item.thumbnailImageSrc" :alt="slotProps.item.alt" style="width: 50px; height: 50px;" />
+        </template>
+      </Galleria>
+    </Dialog>
   </div>
 </template>
 
