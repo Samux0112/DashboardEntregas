@@ -30,6 +30,7 @@ const displayMapDialog = ref(false); // Variable para mostrar el diálogo del ma
 const selectedLog = ref(null); // Variable para almacenar el log seleccionado
 const displayImageDialog = ref(false); // Variable para mostrar el diálogo de la imagen
 const imageUrl = ref(""); // Variable para almacenar la URL de la imagen
+const imageExists = ref({}); // Variable para almacenar la existencia de imágenes
 
 const availableActions = [
   { label: 'Inicio de sesión', value: 'Inicio de sesión' },
@@ -125,6 +126,19 @@ const obtenerLogsPorFecha = async (rutaId, fecha, token) => {
   return response.data;
 };
 
+const verificarExistenciaImagen = async (codCliente, token) => {
+  try {
+    const response = await axios.head(`https://calidad-yesentregas-api.yes.com.sv/img/${codCliente}.jpg`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return response.status === 200;
+  } catch (error) {
+    return false;
+  }
+};
+
 const obtenerLogs = async () => {
   try {
     if (!selectedRuta.value || !startDate.value || !endDate.value || selectedActions.value.length === 0) {
@@ -158,6 +172,16 @@ const obtenerLogs = async () => {
 
     logs.value = logsTemp;
     filtrarLogs();
+
+    // Verificar la existencia de las imágenes
+    const imageExistencePromises = logsTemp.map(async log => {
+      if (log.json_accion.kunnag) {
+        const exists = await verificarExistenciaImagen(log.json_accion.kunnag, token);
+        imageExists.value[log.json_accion.kunnag] = exists;
+      }
+    });
+    await Promise.all(imageExistencePromises);
+
   } catch (error) {
     console.error('Error al obtener los logs:', error);
     showAlert({
@@ -332,13 +356,24 @@ const shouldShowMapButton = (log) => {
   );
 };
 
+// Función para determinar si se debe mostrar el botón de imagen
+const shouldShowImageButton = (log) => {
+  const accion = log.json_accion.Accion;
+  const codCliente = log.json_accion.kunnag;
+
+  return (
+    ["Entrega realizada (entregado)", "Entrega realizada (parcial)", "Entrega realizada (no_entregado)"].includes(accion)
+    && codCliente
+    && imageExists.value[codCliente]
+  );
+};
+
 onMounted(() => {
   authStore.loadSession();
   cargarRutas();
   cargarValoresDesdeLocalStorage(); // Cargar los valores seleccionados desde localStorage al montar el componente
 });
 </script>
-
 <template>
   <div class="card">
     <Toolbar class="mb-6">
@@ -452,7 +487,9 @@ onMounted(() => {
       <Column field="json_accion.tiempo de visita" header="Dur. visita" sortable style="width: 150px;"></Column>
       <Column header="Img Local" style="width: 150px;">
         <template #body="slotProps">
-          <Button icon="pi pi-image" @click="showImageDialog(slotProps.data.json_accion.kunnag)" />
+          <Button  v-if="shouldShowImageButton(slotProps.data)" 
+            icon="pi pi-image" 
+            @click="showImageDialog(slotProps.data.json_accion.kunnag)" />
         </template>
       </Column>
     </DataTable>

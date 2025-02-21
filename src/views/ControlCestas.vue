@@ -39,22 +39,10 @@ const cargarRutas = () => {
 const cargarClientes = async () => {
   try {
     if (!selectedRuta.value) {
-      showAlert({
-        title: "Ruta no seleccionada",
-        text: "Por favor, selecciona una ruta.",
-        icon: "warning",
-        confirmButtonText: "Entendido",
-      });
       return;
     }
 
     loading.value = true; // Iniciar carga
-    showAlert({
-      title: "Cargando",
-      text: "Cargando los clientes...",
-      icon: "info",
-      showConfirmButton: false,
-    });
 
     const responseClientes = await axios.post(
       "https://calidad-yesentregas-api.yes.com.sv/control-cestas-dash/",
@@ -68,9 +56,7 @@ const cargarClientes = async () => {
     if (responseClientes.data && responseClientes.data.length > 0) {
       clientes.value = responseClientes.data;
       filtrarClientes(); // Filtrar los clientes después de cargarlos
-      closeAlert(); // Cerrar el alert de cargando
     } else {
-      closeAlert(); // Cerrar el alert de cargando
       showAlert({
         title: "Sin clientes",
         text: "No se encontraron clientes para la ruta seleccionada.",
@@ -80,7 +66,6 @@ const cargarClientes = async () => {
     }
   } catch (error) {
     console.error("Error al cargar los clientes:", error);
-    closeAlert(); // Cerrar el alert de cargando
     showAlert({
       title: "Error",
       text: "Hubo un problema al cargar los clientes.",
@@ -115,13 +100,6 @@ const insertarMovimiento = async (cliente, tipo_mov, cantidad, cantidadPalets) =
       "https://calidad-yesentregas-api.yes.com.sv/control-cestas/insert/",
       payload
     );
-
-    showAlert({
-      title: "Éxito",
-      text: "Movimiento insertado correctamente.",
-      icon: "success",
-      confirmButtonText: "Entendido",
-    });
 
     cargarClientes(); // Recargar los clientes
   } catch (error) {
