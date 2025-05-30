@@ -12,6 +12,11 @@ const model = ref([
         to: { name: "dashboard" },
       },
       {
+        label: "Lista de entregas",
+        icon: "pi pi-fw pi-check-square",
+        to: { name: "listadeentregas" },
+      },
+      {
         label: "Control-Cestas",
         icon: "pi pi-fw pi-shopping-cart",
         to: { name: "control-cestas" },
@@ -21,6 +26,7 @@ const model = ref([
         icon: "pi pi-fw pi-copy",
         to: { name: "log-actividades" },
       },
+      
     ],
   },
   

@@ -89,6 +89,15 @@ const filtrarClientes = () => {
   } else {
     clientesFiltrados.value = clientes.value.filter((cliente) => cliente.fechaconsult !== 1);
   }
+  
+  if (searchTerm.value) {
+    const term = searchTerm.value.toLowerCase();
+    clientesFiltrados.value = clientesFiltrados.value.filter(cliente => 
+      cliente.kunnr.toLowerCase().includes(term) || 
+      cliente.name1.toLowerCase().includes(term) || 
+      cliente.name2.toLowerCase().includes(term)
+    );
+  }
 };
 
 const insertarMovimiento = async (cliente, tipo_mov, cantidad, cantidadPalets) => {
@@ -202,7 +211,7 @@ onMounted(() => {
   cargarClientes(); // Cargar los clientes al montar el componente
 });
 
-watch([searchTerm, fechaconsult, contType, selectedRuta], cargarClientes); // Agregar selectedRuta al watch
+watch([searchTerm, fechaconsult, contType, selectedRuta, startDate], cargarClientes); // Agregar startDate al watch
 
 const dt = ref();
 const filters = ref({
@@ -277,7 +286,7 @@ const exportCSV = () => {
             <InputIcon>
               <i class="pi pi-search" />
             </InputIcon>
-            <InputText v-model="searchTerm" placeholder="Buscar por nombre..." />
+            <InputText v-model="searchTerm" placeholder="Buscar por kunnr, nombre o razón social..." />
           </IconField>
         </div>
       </template>

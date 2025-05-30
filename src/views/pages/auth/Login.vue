@@ -6,6 +6,7 @@ import InputText from "primevue/inputtext";
 import Password from "primevue/password";
 import { ref, watch } from "vue";
 import { useRouter } from "vue-router";
+
 const { showAlert } = useLayout();
 const username = ref("");
 const password = ref("");
@@ -26,7 +27,6 @@ watch(password, (newValue) => {
   }
 });
 
-
 // Función para manejar el inicio de sesión
 const handleLogin = async () => {
   if (!username.value || !password.value) {
@@ -37,15 +37,23 @@ const handleLogin = async () => {
   try {
     await authStore.login(username.value, password.value); // Llamamos la acción login
     
-    // Verificar si el usuario está autenticado
-    if (authStore.isAuthenticated()) {
-      router.push("/dashboard"); // Redirige al dashboard si el login es exitoso
-    } else {
+    // Verificar si el usuario tiene los permisos necesarios
+    const hasRequiredGroup =
+      authStore.groups.includes("YesEntregas-Supervisor") ||
+      authStore.groups.includes("YesEntregas-SupervisorGT");
+
+    if (!hasRequiredGroup) {
       showAlert(
         "Error",
-        "Inicio de sesión fallido, por favor verifica tus credenciales",
+        "No tienes permisos para acceder al sistema.",
         "error"
       );
+      return;
+    }
+
+    // Redirigir si el usuario está autenticado
+    if (authStore.isAuthenticated()) {
+      router.push("/dashboard"); // Redirige al dashboard si el login es exitoso
     }
   } catch (error) {
     console.error("Error en el inicio de sesión:", error);
@@ -59,11 +67,8 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div
-    class="bg-surface-50 dark:bg-surface-950 flex items-center justify-center min-h-screen min-w-[100vw] overflow-hidden"
-  >
+  <div class="bg-surface-50 dark:bg-surface-950 flex items-center justify-center min-h-screen min-w-[100vw] overflow-hidden">
     <div class="flex flex-col items-center justify-center">
-      <!-- Reemplazamos var(--primary-color) por el código hexadecimal del color naranja -->
       <div
         style="
           border-radius: 56px;

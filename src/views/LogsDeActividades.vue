@@ -3,18 +3,12 @@ import { ref, onMounted, computed, nextTick, watch } from "vue";
 import axios from "axios";
 import { useAuthStore } from "@/api-plugins/authStores";
 import { useLayout } from "@/layout/composables/layout";
-import { useRouter } from "vue-router";
-import { useToast } from "primevue/usetoast";
 import { FilterMatchMode } from "@primevue/core/api";
-import Swal from 'sweetalert2';
+
 
 const { showAlert, isDarkTheme, getDarkModeStyles, getLightModeStyles, toggleDarkMode } = useLayout();
-const router = useRouter();
-const authStore = useAuthStore();
-const toast = useToast();
-const username = computed(() => authStore.user?.Username || "Invitado");
 
-const expandedRows = ref([]);
+const authStore = useAuthStore();
 const rutas = ref([]);
 const clientes = ref([]);
 const clientesFiltrados = ref([]);

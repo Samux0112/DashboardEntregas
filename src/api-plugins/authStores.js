@@ -19,13 +19,26 @@ axios.interceptors.request.use(
   }
 );
 
+// Interceptor para manejar la expiración del token
+axios.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      const authStore = useAuthStore();
+      authStore.logout(true); // Pasar true para indicar que la sesión expiró
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const useAuthStore = defineStore('auth', {
     state: () => ({
         user: null,
         groups: [],
         token: null,
         error: null,
-        location: null,
         isMuted: false // Añadido para isMuted
     }),
 
@@ -36,7 +49,7 @@ export const useAuthStore = defineStore('auth', {
                 const response = await axios.post('https://calidad-yesentregas-api.yes.com.sv/auth/', {
                     username,
                     password,
-                    country: 'sv'
+                    country: 'sv' // Determina el país según el nombre de usuario
                 });
 
                 // Verificar respuesta
@@ -55,7 +68,8 @@ export const useAuthStore = defineStore('auth', {
                 }
 
                 // Verificar si el usuario tiene los permisos necesarios
-                const hasRequiredGroup = this.groups.includes('YesEntregas-Supervisor');
+                const hasRequiredGroup = this.groups.includes('YesEntregas-Supervisor') || 
+                                         this.groups.includes('YesEntregas-SupervisorGT');
                 if (!hasRequiredGroup) {
                     // Mostrar mensaje de error
                     showAlert({
@@ -87,9 +101,6 @@ export const useAuthStore = defineStore('auth', {
                 // Redirigir al dashboard
                 router.push({ name: 'dashboard' });
 
-                // Solicitar permisos de geolocalización después del inicio de sesión
-                this.requestLocationPermissions();
-
             } catch (err) {
                 console.error('Error al autenticar:', err);
 
@@ -115,103 +126,16 @@ export const useAuthStore = defineStore('auth', {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         },
 
-        async requestLocationPermissions() {
-            try {
-                if ('geolocation' in navigator) {
-                    console.log('Solicitando permisos de geolocalización...');
-
-                    const successCallback = async (position) => {
-                        const newLocation = {
-                            latitude: position.coords.latitude,
-                            longitude: position.coords.longitude
-                        };
-
-                        // Si la ubicación ha cambiado, actualizar la ubicación
-                        if (!this.location || 
-                            this.location.latitude !== newLocation.latitude || 
-                            this.location.longitude !== newLocation.longitude) {
-                            this.location = newLocation;
-                            localStorage.setItem('location', JSON.stringify(this.location));
-                            console.log('Ubicación actualizada:', this.location);
-                        }
-                    };
-
-                    const errorCallback = (error) => {
-                        console.error('Error al obtener la ubicación:', error.message);
-                    };
-
-                    const options = {
-                        enableHighAccuracy: true,
-                        timeout: 5000,
-                        maximumAge: 0
-                    };
-
-                    // Usar watchPosition para actualizar la ubicación continuamente
-                    navigator.geolocation.watchPosition(successCallback, errorCallback, options);
-                }
-            } catch (error) {
-                console.error('Error al solicitar permisos de ubicación:', error);
-                showAlert({
-                    title: 'Error al solicitar permisos',
-                    text: 'No se pudo acceder a la ubicación. Asegúrate de habilitar los permisos.',
-                    icon: 'error',
-                    confirmButtonText: 'Intentar de nuevo'
-                });
-            }
-        },
-
-        async obtenerYGuardarUbicacion() {
-            return new Promise((resolve) => {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            const lat = position.coords.latitude;
-                            const lon = position.coords.longitude;
-                            localStorage.setItem('userLatitude', lat);
-                            localStorage.setItem('userLongitude', lon);
-                            console.log(`Ubicación obtenida y guardada: Latitud ${lat}, Longitud ${lon}`);
-                            resolve({ lat, lon });
-                        },
-                        (error) => {
-                            console.error('Error obteniendo la geolocalización:', error);
-                            showAlert({
-                                title: 'Error',
-                                text: 'No se pudo obtener la ubicación. Asegúrate de que los permisos están habilitados.',
-                                icon: 'error',
-                                confirmButtonText: 'Entendido'
-                            });
-                            // Resolver con valores predeterminados si hay un error
-                            resolve({ lat: 0, lon: 0 });
-                        }
-                    );
-                } else {
-                    console.error('Geolocalización no soportada por el navegador');
-                    showAlert({
-                        title: 'Error',
-                        text: 'Geolocalización no soportada por el navegador',
-                        icon: 'error',
-                        confirmButtonText: 'Entendido'
-                    });
-                    // Resolver con valores predeterminados si la geolocalización no es soportada
-                    resolve({ lat: 0, lon: 0 });
-                }
-            });
-        },
-
         loadSession() {
             const user = localStorage.getItem('user');
             const groups = localStorage.getItem('groups');
             const token = localStorage.getItem('token');
-            const location = localStorage.getItem('location');
 
             if (user && groups && token) {
                 try {
                     this.user = JSON.parse(user);
                     this.groups = JSON.parse(groups);
                     this.token = token;
-                    if (location) {
-                        this.location = JSON.parse(location);
-                    }
 
                     // Guardar el token en el localStorage si no está guardado
                     if (!localStorage.getItem('token')) {
@@ -219,44 +143,68 @@ export const useAuthStore = defineStore('auth', {
                     }
 
                     this.setAxiosToken(this.token);
-                    console.log('Sesión cargada:', this.user, this.groups, this.location);
+                    console.log('Sesión cargada:', this.user, this.groups);
                 } catch (error) {
                     console.error('Error al cargar la sesión:', error);
                 }
             }
         },
 
-        async logout() {
-            showAlert({
-                title: '¿Estás seguro de que deseas cerrar sesión?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Sí, cerrar sesión',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    this.user = null;
-                    this.groups = [];
-                    this.token = null;
-                    this.location = null;
+        async logout(sessionExpired = false) {
+            if (sessionExpired) {
+                showAlert({
+                    title: 'Sesión Expirada',
+                    text: 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.',
+                    icon: 'warning',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                showAlert({
+                    title: '¿Estás seguro de que deseas cerrar sesión?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, cerrar sesión',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        this.user = null;
+                        this.groups = [];
+                        this.token = null;
 
-                    localStorage.removeItem('user');
-                    localStorage.removeItem('groups');
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('location');
+                        localStorage.removeItem('user');
+                        localStorage.removeItem('groups');
+                        localStorage.removeItem('token');
 
-                    delete axios.defaults.headers.common['Authorization'];
+                        delete axios.defaults.headers.common['Authorization'];
 
-                    showAlert({
-                        title: 'Has cerrado sesión correctamente.',
-                        icon: 'success',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
+                        showAlert({
+                            title: 'Has cerrado sesión correctamente.',
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
 
+                        router.push({ name: 'login' });
+                    }
+                });
+            }
+
+            if (sessionExpired) {
+                this.user = null;
+                this.groups = [];
+                this.token = null;
+
+                localStorage.removeItem('user');
+                localStorage.removeItem('groups');
+                localStorage.removeItem('token');
+
+                delete axios.defaults.headers.common['Authorization'];
+
+                setTimeout(() => {
                     router.push({ name: 'login' });
-                }
-            });
+                }, 2000);
+            }
         },
 
         isAuthenticated() {
@@ -265,10 +213,6 @@ export const useAuthStore = defineStore('auth', {
 
         hasGroup(groupName) {
             return this.groups.includes(groupName);
-        },
-
-        async registrarEntrega(kunnag, vbeln) {
-            await this.obtenerUbicacionYEnviarLog('Entrega realizada', kunnag, vbeln);
         }
     }
 });
