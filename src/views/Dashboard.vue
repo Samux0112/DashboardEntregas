@@ -2,7 +2,6 @@
 import { ref, onMounted, watch } from 'vue';
 import axios from 'axios';
 import { useLayout } from "@/layout/composables/layout";
-import Swal from 'sweetalert2';
 import GoogleMap from '@/layout/GoogleMap.vue'; // Asegúrate de tener el componente GoogleMap
 
 const { showAlert } = useLayout();
@@ -14,6 +13,7 @@ const calendarValue = ref(new Date()); // Valor por defecto para la fecha
 const dropdownValue = ref(''); // Valor seleccionado del dropdown para la ruta
 const filterValue = ref('Todas las ubicaciones'); // Valor seleccionado del dropdown para el filtro
 const operaciones = ref([]);
+const loading = ref(false);
 
 // Función para actualizar la fecha y hora cada segundo
 const actualizarFechaHora = () => {
@@ -84,6 +84,8 @@ const cargarValoresDesdeLocalStorage = () => {
 // Función para obtener las operaciones de una ruta específica
 const obtenerOperacionesRuta = async () => {
     try {
+        loading.value = true; // Inicia cargando
+
         if (!calendarValue.value || !dropdownValue.value || !filterValue.value || dropdownValue.value === '') {
             showAlert({
                 title: 'Campos incompletos',
@@ -93,6 +95,8 @@ const obtenerOperacionesRuta = async () => {
             });
             return;
         }
+
+        loading.value = true;
 
         const rutaId = dropdownValue.value;
         const fecha = calendarValue.value.toLocaleDateString('es-ES').replace(/\//g, '-'); // Formato DD-MM-YYYY
@@ -162,6 +166,8 @@ const obtenerOperacionesRuta = async () => {
             icon: 'error',
             confirmButtonText: 'Entendido',
         });
+    } finally {
+        loading.value = false; // Termina cargando
     }
 };
 
@@ -206,8 +212,14 @@ onMounted(() => {
             <Button @click="obtenerOperacionesRuta" class="px-4 py-2 bg-blue-500 text-white rounded">Buscar</Button>
         </div>
 
-        <!-- Contenedor para el mapa -->
-        <div class="flex h-screen">
+        <!-- Spinner de carga -->
+        <div v-if="loading" class="flex justify-center items-center my-8">
+            <span class="pi pi-spin pi-spinner mr-2"></span>
+            <span class="text-gray-500">Cargando operaciones...</span>
+        </div>
+
+        <!-- Mapa solo si no está cargando -->
+        <div v-else class="flex h-screen">
             <GoogleMap class="custom-google-map" :operaciones="operaciones" />
         </div>
     </div>

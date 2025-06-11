@@ -431,61 +431,63 @@ onMounted(() => {
         </div>
       </template>
     </Toolbar>
-    <div v-if="loadingLogs" class="flex justify-center items-center">
-      <ProgressSpinner />
+    <div v-if="loadingLogs" class="flex justify-center items-center my-8">
+      <span class="pi pi-spin pi-spinner mr-2"></span>
+      <span class="text-gray-500">Cargando logs...</span>
     </div>
-    <DataTable
-      v-else
-      ref="dt"
-      :value="filteredLogs"
-      dataKey="id"
-      :paginator="true"
-      :rows="50"
-      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-      :rowsPerPageOptions="[50, 75 , 100]"
-      currentPageReportTemplate="Mostrando del {first} al {last} de {totalRecords} logs"
-      class="compact-table"
-    >
-      <template #header>
-        <div class="flex flex-wrap gap-2 items-center justify-between">
-          <h4 class="m-0">Registro de actividades</h4>
-          <IconField>
-            <InputIcon>
-              <i class="pi pi-search" />
-            </InputIcon>
-            <InputText
-              v-model="searchTerm"
-              placeholder="Buscar por acción..."
+    <div v-else>
+      <DataTable
+        ref="dt"
+        :value="filteredLogs"
+        dataKey="id"
+        :paginator="true"
+        :rows="50"
+        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+        :rowsPerPageOptions="[50, 75 , 100]"
+        currentPageReportTemplate="Mostrando del {first} al {last} de {totalRecords} logs"
+        class="compact-table"
+      >
+        <template #header>
+          <div class="flex flex-wrap gap-2 items-center justify-between">
+            <h4 class="m-0">Registro de actividades</h4>
+            <IconField>
+              <InputIcon>
+                <i class="pi pi-search" />
+              </InputIcon>
+              <InputText
+                v-model="searchTerm"
+                placeholder="Buscar por acción..."
+              />
+            </IconField>
+          </div>
+        </template>
+        <Column field="json_accion.fecha-hora" header="Fecha y hora" sortable style="width: 100px;"></Column>
+        <Column field="json_accion.Accion" header="Acción" sortable style="width: 100px;"></Column>
+        <Column field="json_accion.kunnag" header="Doc. Sap" sortable style="width: 100px;"></Column>
+        <!-- <Column field="json_accion.Username" header="Usuario" sortable style="width: 100px;"></Column> -->
+        <Column field="json_accion.vbeln" header="Número de Factura" sortable style="width: 100px;"></Column>
+        <Column header="Ver en mapa" style="width: 100px;">
+          <template #body="slotProps">
+            <Button 
+              v-if="shouldShowMapButton(slotProps.data)" 
+              icon="pi pi-map" 
+              @click="showMapDialog(slotProps.data)" 
             />
-          </IconField>
-        </div>
-      </template>
-      <Column field="json_accion.fecha-hora" header="Fecha y hora" sortable style="width: 100px;"></Column>
-      <Column field="json_accion.Accion" header="Acción" sortable style="width: 100px;"></Column>
-      <Column field="json_accion.kunnag" header="Doc. Sap" sortable style="width: 100px;"></Column>
-      <!-- <Column field="json_accion.Username" header="Usuario" sortable style="width: 100px;"></Column> -->
-      <Column field="json_accion.vbeln" header="Número de Factura" sortable style="width: 100px;"></Column>
-      <Column header="Ver en mapa" style="width: 100px;">
-        <template #body="slotProps">
-          <Button 
-            v-if="shouldShowMapButton(slotProps.data)" 
-            icon="pi pi-map" 
-            @click="showMapDialog(slotProps.data)" 
-          />
-        </template>
-      </Column>
-      <Column field="json_accion.nota_aclaratoria" header="Distancia" sortable style="width: 150px;"></Column>
-      <Column field="json_accion.tiempo de traslado" header="Dur. traslado" sortable style="width: 150px;"></Column>
-      <Column field="json_accion.hora de visita" header="Hora de llegada" sortable style="width: 150px;"></Column>
-      <Column field="json_accion.tiempo de visita" header="Dur. visita" sortable style="width: 150px;"></Column>
-      <Column header="Img Local" style="width: 150px;">
-        <template #body="slotProps">
-          <Button  v-if="shouldShowImageButton(slotProps.data)" 
-            icon="pi pi-image" 
-            @click="showImageDialog(slotProps.data.json_accion.kunnag)" />
-        </template>
-      </Column>
-    </DataTable>
+          </template>
+        </Column>
+        <Column field="json_accion.nota_aclaratoria" header="Distancia" sortable style="width: 150px;"></Column>
+        <Column field="json_accion.tiempo de traslado" header="Dur. traslado" sortable style="width: 150px;"></Column>
+        <Column field="json_accion.hora de visita" header="Hora de llegada" sortable style="width: 150px;"></Column>
+        <Column field="json_accion.tiempo de visita" header="Dur. visita" sortable style="width: 150px;"></Column>
+        <Column header="Img Local" style="width: 150px;">
+          <template #body="slotProps">
+            <Button  v-if="shouldShowImageButton(slotProps.data)" 
+              icon="pi pi-image" 
+              @click="showImageDialog(slotProps.data.json_accion.kunnag)" />
+          </template>
+        </Column>
+      </DataTable>
+    </div>
 
     <!-- Dialogo para el mapa -->
     <Dialog header="Mapa de Referencia" v-model:visible="displayMapDialog" width="100%" :style="{ width: '90vw', maxWidth: '1200px' }"

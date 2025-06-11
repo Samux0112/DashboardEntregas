@@ -267,52 +267,58 @@ const exportCSV = () => {
         </div>
       </template>
     </Toolbar>
-    <DataTable
-      ref="dt"
-      v-model:expandedRows="expandedRows"
-      :value="clientesFiltrados"
-      dataKey="kunnr"
-      :paginator="true"
-      :rows="10"
-      :filters="filters"
-      paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
-      :rowsPerPageOptions="[5, 10, 25]"
-      currentPageReportTemplate="Mostrando del {first} al {last} de {totalRecords} clientes"
-    >
-      <template #header>
-        <div class="flex flex-wrap gap-2 items-center justify-between">
-          <h4 class="m-0">Lista de Clientes</h4>
-          <IconField>
-            <InputIcon>
-              <i class="pi pi-search" />
-            </InputIcon>
-            <InputText v-model="searchTerm" placeholder="Buscar por kunnr, nombre o razón social..." />
-          </IconField>
-        </div>
-      </template>
-      <Column field="kunnr" header="Kunnr" sortable></Column>
-      <Column field="name1" header="Razon social" sortable></Column>
-      <Column field="name2" header="Nombre" sortable></Column>
-      <Column field="sortl" header="Ruta" sortable></Column>
-      <Column field="stras" header="Dirección" sortable></Column>
-      <Column field="saldo_inicial" header="Saldo inicial" sortable></Column>
-      <Column field="entradas" header="Entradas" sortable>
-        <template #body="slotProps">
-          <InputText v-model="slotProps.data.entradas" class="small-input" @keypress="handleKeyPress($event, slotProps.data, 'E')" />
+    <div v-if="loading" class="flex justify-center items-center my-8">
+      <span class="pi pi-spin pi-spinner mr-2"></span>
+      <span class="text-gray-500">Cargando datos...</span>
+    </div>
+    <div v-else>
+      <DataTable
+        ref="dt"
+        v-model:expandedRows="expandedRows"
+        :value="clientesFiltrados"
+        dataKey="kunnr"
+        :paginator="true"
+        :rows="10"
+        :filters="filters"
+        paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+        :rowsPerPageOptions="[5, 10, 25]"
+        currentPageReportTemplate="Mostrando del {first} al {last} de {totalRecords} clientes"
+      >
+        <template #header>
+          <div class="flex flex-wrap gap-2 items-center justify-between">
+            <h4 class="m-0">Lista de Clientes</h4>
+            <IconField>
+              <InputIcon>
+                <i class="pi pi-search" />
+              </InputIcon>
+              <InputText v-model="searchTerm" placeholder="Buscar por kunnr, nombre o razón social..." />
+            </IconField>
+          </div>
         </template>
-      </Column>
-      <Column field="salidas" header="Salidas" sortable>
-        <template #body="slotProps">
-          <InputText v-model="slotProps.data.salidas" class="small-input" @keypress="handleKeyPress($event, slotProps.data, 'S')" />
-        </template>
-      </Column>
-      <Column field="saldo_final" header="Saldo final" sortable></Column>
-      <Column header="Ver imagen" style="width: 100px;">
-        <template #body="slotProps">
-          <Button icon="pi pi-image" @click="obtenerImagenesCarrusel(slotProps.data.kunnr)" />
-        </template>
-      </Column>
-    </DataTable>
+        <Column field="kunnr" header="Kunnr" sortable></Column>
+        <Column field="name1" header="Razon social" sortable></Column>
+        <Column field="name2" header="Nombre" sortable></Column>
+        <Column field="sortl" header="Ruta" sortable></Column>
+        <Column field="stras" header="Dirección" sortable></Column>
+        <Column field="saldo_inicial" header="Saldo inicial" sortable></Column>
+        <Column field="entradas" header="Entradas" sortable>
+          <template #body="slotProps">
+            <InputText v-model="slotProps.data.entradas" class="small-input" @keypress="handleKeyPress($event, slotProps.data, 'E')" />
+          </template>
+        </Column>
+        <Column field="salidas" header="Salidas" sortable>
+          <template #body="slotProps">
+            <InputText v-model="slotProps.data.salidas" class="small-input" @keypress="handleKeyPress($event, slotProps.data, 'S')" />
+          </template>
+        </Column>
+        <Column field="saldo_final" header="Saldo final" sortable></Column>
+        <Column header="Ver imagen" style="width: 100px;">
+          <template #body="slotProps">
+            <Button icon="pi pi-image" @click="obtenerImagenesCarrusel(slotProps.data.kunnr)" />
+          </template>
+        </Column>
+      </DataTable>
+    </div>
 
     <!-- Dialogo para el carrusel -->
     <Dialog header="Imagen del Cliente" v-model:visible="displayGalleriaDialog" width="50%" :style="{ width: '50vw', maxWidth: '600px' }" :breakpoints="{ '960px': '95vw', '640px': '100vw' }" modal>
